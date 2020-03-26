@@ -1,0 +1,82 @@
+{
+	"name": "vscode-notes",
+	"displayName": "Notes",
+	"description": "A powerful notes extension for Visual Studio Code with features similar to Notational Velocity.",
+	"version": "1.0.0",
+	"publisher": "dionmunk",
+	"license": "CC-BY-NC-4.0",
+	"author": {
+        "name": "Dion Munk",
+        "url": "https://github.com/dionmunk"
+	},
+	"keywords": [
+        "notes",
+        "notational velocity"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/dionmunk/vscode-nvnotes"
+	},
+    "homepage": "https://github.com/dionmunk/vscode-nvnotes#readme",
+    "bugs": {
+        "url": "https://github.com/dionmunk/vscode-nvnotes/issues"
+	},
+	"icon": "static/icon.png",
+	"engines": {
+		"vscode": "^1.41.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:Notes.setup",
+		"onCommand:Notes.new",
+		"onCommand:Notes.list"
+	],
+	"main": "./src/extension.js",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Configuration",
+			"properties": {
+				"notes.notesFolder": {
+					"type": "string",
+					"default": "",
+					"description": "Location where notes are stored"
+				}
+			}
+		},
+		"commands": [
+			{
+				"command": "Notes.setup",
+				"title": "Select location to store notes",
+				"category": "Notes"
+			},
+			{
+				"command": "Notes.new",
+				"title": "Create new note",
+				"category": "Notes"
+			},
+			{
+				"command": "Notes.list",
+				"title": "List all notes",
+				"category": "Notes"
+			}
+		]
+	},
+	"scripts": {
+		"test": "node ./test/runTest.js"
+	},
+	"devDependencies": {
+		"@types/glob": "^7.1.1",
+		"@types/mocha": "^5.2.7",
+		"@types/node": "^12.11.7",
+		"@types/vscode": "^1.41.0",
+		"eslint": "^6.6.0",
+		"glob": "^7.1.5",
+		"mocha": "^6.2.2",
+		"typescript": "^3.6.4",
+		"vscode-test": "^1.2.2"
+	},
+	"dependencies": {}
+}
