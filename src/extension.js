@@ -25,7 +25,7 @@ function activate(context) {
       if(fileUri && fileUri[0]) {
         const extensionConf = vscode.workspace.getConfiguration('Notes')
         extensionConf.update('notesFolder', path.normalize(fileUri[0].fsPath), true).then(() => {
-          vscode.window.showInformationMessage('Where do you want to save notes?')
+          vscode.window.showInformationMessage('You selected a location to store notes.')
         }).catch(err => {
           console.error(err)
           vscode.window.showErrorMessage('An error occurred during setup.')
