@@ -15,11 +15,11 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/dionmunk/vscode-nvnotes"
+		"url": "https://github.com/dionmunk/vscode-notes"
 	},
-    "homepage": "https://github.com/dionmunk/vscode-nvnotes#readme",
+    "homepage": "https://github.com/dionmunk/vscode-notes#readme",
     "bugs": {
-        "url": "https://github.com/dionmunk/vscode-nvnotes/issues"
+        "url": "https://github.com/dionmunk/vscode-notes/issues"
 	},
 	"icon": "static/icon.png",
 	"engines": {
