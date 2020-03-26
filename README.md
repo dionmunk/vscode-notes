@@ -28,7 +28,7 @@ Prefix: `Notes:`
 
 This extension contributes the following settings:
 
-- `notes.notesFolder`: location where notes will be stores
+- `Notes.notesFolder`: location where notes will be stores
 
 ## License
 
