@@ -23,7 +23,7 @@ function activate(context) {
 
     vscode.window.showOpenDialog(options).then(fileUri => {
       if(fileUri && fileUri[0]) {
-        const extensionConf = vscode.workspace.getConfiguration('notes')
+        const extensionConf = vscode.workspace.getConfiguration('Notes')
         extensionConf.update('notesFolder', path.normalize(fileUri[0].fsPath), true).then(() => {
           vscode.window.showInformationMessage('Where do you want to save notes?')
         }).catch(err => {
@@ -42,7 +42,7 @@ function activate(context) {
       prompt: 'Note title?',
       value: '',
     }).then(noteTitle => {
-      const extensionConf = vscode.workspace.getConfiguration('notes')
+      const extensionConf = vscode.workspace.getConfiguration('Notes')
       const notesFolder = extensionConf.get('notesFolder')
       const title = `${noteTitle}`
       // remove bad characters from title / will need to expand this eventually
@@ -65,7 +65,7 @@ function activate(context) {
 
   // Notes list
   let listNotesDisposable = vscode.commands.registerCommand('Notes.list', function () {
-      const extensionConf = vscode.workspace.getConfiguration('notes')
+      const extensionConf = vscode.workspace.getConfiguration('Notes')
       const notesFolder = extensionConf.get('notesFolder')
       fs.readdir(notesFolder, function(err, files) {
         if(err) {

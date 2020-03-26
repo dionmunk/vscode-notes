@@ -39,7 +39,7 @@
 			"type": "object",
 			"title": "Configuration",
 			"properties": {
-				"notes.notesFolder": {
+				"Notes.notesFolder": {
 					"type": "string",
 					"default": "",
 					"description": "Location where notes are stored"
@@ -63,9 +63,6 @@
 				"category": "Notes"
 			}
 		]
-	},
-	"scripts": {
-		"test": "node ./test/runTest.js"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
