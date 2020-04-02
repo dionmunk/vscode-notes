@@ -6,34 +6,36 @@
 	"publisher": "dionmunk",
 	"license": "CC-BY-NC-4.0",
 	"author": {
-        "name": "Dion Munk",
-        "url": "https://github.com/dionmunk"
+		"name": "Dion Munk",
+		"url": "https://github.com/dionmunk"
 	},
 	"keywords": [
-        "notes",
-        "notational velocity"
+		"notes",
+		"notational velocity"
 	],
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/dionmunk/vscode-notes"
 	},
-    "homepage": "https://github.com/dionmunk/vscode-notes#readme",
-    "bugs": {
-        "url": "https://github.com/dionmunk/vscode-notes/issues"
+	"homepage": "https://github.com/dionmunk/vscode-notes#readme",
+	"bugs": {
+		"url": "https://github.com/dionmunk/vscode-notes/issues"
 	},
-	"icon": "static/icon.png",
+	"icon": "resources/icon.png",
 	"engines": {
-		"vscode": "^1.41.0"
+		"vscode": "^1.43.0"
 	},
 	"categories": [
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:Notes.setup",
+		"onView:notes",
+		"onCommand:Notes.list",
 		"onCommand:Notes.new",
-		"onCommand:Notes.list"
+		"onCommand:Notes.refresh",
+		"onCommand:Notes.setup"
 	],
-	"main": "./src/extension.js",
+	"main": "./out/extension.js",
 	"contributes": {
 		"configuration": {
 			"type": "object",
@@ -48,32 +50,127 @@
 		},
 		"commands": [
 			{
-				"command": "Notes.setup",
-				"title": "Select location to store notes",
+				"command": "Notes.delete",
+				"title": "Delete note",
+				"icon": {
+					"light": "resources/light/refresh.svg",
+					"dark": "resources/dark/refresh.svg"
+				}
+			},
+			{
+				"command": "Notes.list",
+				"title": "List notes",
 				"category": "Notes"
 			},
 			{
 				"command": "Notes.new",
-				"title": "Create new note",
-				"category": "Notes"
+				"title": "New note",
+				"category": "Notes",
+				"icon": {
+					"light": "resources/light/add.svg",
+					"dark": "resources/dark/add.svg"
+				}
 			},
 			{
-				"command": "Notes.list",
-				"title": "List all notes",
+				"command": "Notes.refresh",
+				"title": "Refresh notes",
+				"category": "Notes",
+				"icon": {
+					"light": "resources/light/refresh.svg",
+					"dark": "resources/dark/refresh.svg"
+				}
+			},
+			{
+				"command": "Notes.rename",
+				"title": "Rename note",
+				"icon": {
+					"light": "resources/light/refresh.svg",
+					"dark": "resources/dark/refresh.svg"
+				}
+			},
+			{
+				"command": "Notes.setup",
+				"title": "Select location to store notes",
 				"category": "Notes"
 			}
-		]
+		],
+		"keybindings": [
+			{
+				"command": "Notes.list",
+				"key": "alt+l",
+				"mac": "alt+l"
+			},
+			{
+				"command": "Notes.new",
+				"key": "alt+n",
+				"mac": "alt+n"
+			}
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "Notes.refresh",
+					"when": "view == notes",
+					"group": "navigation@1"
+				},
+				{
+					"command": "Notes.new",
+					"when": "view == notes",
+					"group": "navigation@2"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "Notes.rename",
+					"when": "view == notes",
+					"group": "inline@1"
+				},
+				{
+					"command": "Notes.delete",
+					"when": "view == notes",
+					"group": "inline@2"
+				}
+			]
+		},
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "vscode-notes",
+					"title": "Notes",
+					"icon": "resources/activitybar-notes.svg"
+				}
+			]
+		},
+		"views": {
+			"vscode-notes": [
+				{
+					"id": "notes",
+					"name": "Notes"
+				}
+			]
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint src --ext ts",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile && npm run lint",
+		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
-		"@types/mocha": "^5.2.7",
+		"@types/mkdirp": "^1.0.0",
+		"@types/mocha": "^7.0.1",
 		"@types/node": "^12.11.7",
-		"@types/vscode": "^1.41.0",
-		"eslint": "^6.6.0",
-		"glob": "^7.1.5",
-		"mocha": "^6.2.2",
-		"typescript": "^3.6.4",
-		"vscode-test": "^1.2.2"
-	},
-	"dependencies": {}
+		"@types/rimraf": "^3.0.0",
+		"@types/vscode": "^1.43.0",
+		"@typescript-eslint/eslint-plugin": "^2.18.0",
+		"@typescript-eslint/parser": "^2.18.0",
+		"eslint": "^6.8.0",
+		"glob": "^7.1.6",
+		"mocha": "^7.0.1",
+		"typescript": "^3.7.5",
+		"vscode-test": "^1.3.0"
+	}
 }

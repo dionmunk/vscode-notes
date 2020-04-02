@@ -1,3 +1,5 @@
-_source
-test
 *.vsix
+.vscode
+node_modules
+notes
+_source

@@ -6,29 +6,23 @@
 
 A markdown focused notes extension for Visual Studio Code that takes inspiration from Notational Velocity.
 
-## Getting Started
+## Features
 
-1. Open the Command Pallet (CMD+Shift+P or CTRL+Shift+P) and execute `Notes: Select location to store notes` to be prompted for a location to store your note (markdown **.md**) files. 
-2. After you've selected a location to store your notes you can create notes by going to the Command Pallet and selecting `Notes: Create new note`. 
-3. To view and filter the list of notes that you already have you can go to the Command Pallet and select `Notes: list all notes`.
-
-## Usage
+Notes utilizes a decentralized method for taking notes. Notes are stored in a single location (directory) located anywhere you'd like. Notes are written in Markdown and are stored as **.md** files within the Notes storage directory.
 
 The extension can be accessed using the Command Pallet (CMD+Shift+P or CTRL+Shift+P) and typing `Notes`.
 
-## Commands
+## Getting Started
 
-Prefix: `Notes:`
+1. Open the Command Pallet (CMD+Shift+P or CTRL+Shift+P) and execute `Notes: Select location to store notes` to be prompted for a location to store your note (markdown **.md**) files.
+2. After you've selected a location to store your notes you can create notes by going to the Command Pallet and selecting `Notes: Create new note`.
+3. To view and filter the list of notes that you already have you can go to the Command Pallet and select `Notes: list all notes`.
 
-- Set location to store notes
-- Create new note
-- List all notes
-
-## Settings
+## Extension Settings
 
 This extension contributes the following settings:
 
-- `Notes.notesFolder`: location where notes will be stores
+* `Notes.notesFolder`: location where notes will be stores
 
 ## License
 
