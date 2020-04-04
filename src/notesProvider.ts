@@ -3,80 +3,85 @@ import * as fs from 'fs';
 import * as gl from 'glob';
 import * as path from 'path';
 import { Note } from './note';
-import { NotesCommon } from './notesCommon';
 
 export class NotesProvider implements vscode.TreeDataProvider<Note> {
 
 	private _onDidChangeTreeData: vscode.EventEmitter<Note | undefined> = new vscode.EventEmitter<Note | undefined>();
 	readonly onDidChangeTreeData: vscode.Event<Note | undefined> = this._onDidChangeTreeData.event;
 
-	constructor(private storageLocation: string) {
-		console.log('"vscode-notes" storage location: ' + storageLocation);
+	// assign notes location passed to NotesProvider
+	constructor(private notesLocation: string) {
 	};
 
+	public init(): NotesProvider {
+		this.refresh();
+		return this;
+	}
+
+	// refresh tree if tree data changed
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
 	}
 
-	getTreeItem(element: Note): vscode.TreeItem {
-		var treeItem = new vscode.TreeItem( element.label );
-        treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None;
-        if (element) {
-			console.log('"vscode-notes" getTreeItem open note.');
-            treeItem.tooltip = "Open note";
-            treeItem.command = {
-                command: "NotesCommon.openNote",
-				title: "Open note",
-				arguments: [element.location]
-            };
-		}
-		console.log('"vscode-notes" getTreeItem returning note.');
-		return element;
+	// get TreeItem representation of a note
+	getTreeItem(note: Note): vscode.TreeItem {
+		return note;
 	}
 
-	getChildren(element?: Note): Thenable<Note[]> {
-		console.log('"vscode-notes" getting children.');
-		if (!this.storageLocation) {
-			console.log('"vscode-notes" no notes in storage location.');
-			vscode.window.showInformationMessage('No notes in storage location');
+	// get children from notes location
+	getChildren(note?: Note): Thenable<Note[]> {
+		// if tree provider wasn't given a notes location to check
+		if (!this.notesLocation) {
 			return Promise.resolve([]);
 		}
-		if (element) {
+		// if we get a note return resolved promise
+		if (note) {
 			return Promise.resolve([]);
 		}
+		// else return list of notes in notes location
 		else {
-			return Promise.resolve(this.getNotes(this.storageLocation));
+			return Promise.resolve(this.getNotes(this.notesLocation));
 		}
 	}
 
-	getNotes(notePath: string): Note[] {
-		// if the storage location exists
-		if (this.pathExists(notePath)) {
+	// get Notes from notes location
+	getNotes(notesLocation: string): Note[] {
+		// if the notes location exists
+		if (this.pathExists(notesLocation)) {
 			// create a list of Notes called listOfNotes
-			const listOfNotes = (item: string): Note => {
-				return new Note(path.basename(item), notePath, vscode.TreeItemCollapsibleState.None);
+			const listOfNotes = (note: string): Note => {
+				// return a Note, when a note is clicked on in the view, perform a command
+				return new Note(path.basename(note), notesLocation, vscode.TreeItemCollapsibleState.None, {
+					command: 'Notes.openNote',
+					title: '',
+					arguments: [note]
+				});
 			};
-			// get list of markdown files in storage location and save them in a list called listOfNotes
-			const notes = gl.sync(`*.md`, { cwd: notePath, nodir: true, nocase: true }).map(listOfNotes);
+			// get list of markdown files in notes location and save them in a list called listOfNotes
+			// this is markdown focused so markdown is hard coded
+			const notes = gl.sync(`*.md`, { cwd: notesLocation, nodir: true, nocase: true }).map(listOfNotes);
 			// return the list of notes
 			return notes;
 		}
-		// iif the storage location does not exist
+		// if the notes location does not exist
 		else {
 			// return an empty list
 			return [];
 		}
 	}
 
+	// check to see if the given path exists in the file system
 	private pathExists(p: string): boolean {
-		console.log('"vscode-notes" checking if path exists.');
+		// try accessing the given location
 		try {
 			fs.accessSync(p);
+		// error if we can't access given location
 		} catch (err) {
-			console.log('"vscode-notes" path does not exist.');
+			// return false if location does not exist
 			return false;
 		}
-		console.log('"vscode-notes" path exists.');
+		// return true if location exists
 		return true;
 	}
+
 }

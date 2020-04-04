@@ -2,7 +2,7 @@
 	"name": "vscode-notes",
 	"displayName": "Notes",
 	"description": "A markdown focused notes extension for Visual Studio Code that takes inspiration from Notational Velocity.",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"publisher": "dionmunk",
 	"license": "CC-BY-NC-4.0",
 	"author": {
@@ -11,7 +11,8 @@
 	},
 	"keywords": [
 		"notes",
-		"notational velocity"
+		"notational velocity",
+		"nvalt"
 	],
 	"repository": {
 		"type": "git",
@@ -30,10 +31,12 @@
 	],
 	"activationEvents": [
 		"onView:notes",
-		"onCommand:Notes.list",
-		"onCommand:Notes.new",
-		"onCommand:Notes.refresh",
-		"onCommand:Notes.setup"
+		"onCommand:Notes.deleteNote",
+		"onCommand:Notes.listNotes",
+		"onCommand:Notes.newNote",
+		"onCommand:Notes.refreshNotes",
+		"onCommand:Notes.renameNote",
+		"onCommand:Notes.setupNotes"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -41,30 +44,30 @@
 			"type": "object",
 			"title": "Configuration",
 			"properties": {
-				"Notes.notesFolder": {
+				"Notes.notesLocation": {
 					"type": "string",
 					"default": "",
-					"description": "Location where notes are stored"
+					"description": "Storage location for notes."
 				}
 			}
 		},
 		"commands": [
 			{
-				"command": "Notes.delete",
-				"title": "Delete note",
+				"command": "Notes.deleteNote",
+				"title": "Delete Note",
 				"icon": {
-					"light": "resources/light/refresh.svg",
-					"dark": "resources/dark/refresh.svg"
+					"light": "resources/light/delete.svg",
+					"dark": "resources/dark/delete.svg"
 				}
 			},
 			{
-				"command": "Notes.list",
-				"title": "List notes",
+				"command": "Notes.listNotes",
+				"title": "List Notes",
 				"category": "Notes"
 			},
 			{
-				"command": "Notes.new",
-				"title": "New note",
+				"command": "Notes.newNote",
+				"title": "New Note",
 				"category": "Notes",
 				"icon": {
 					"light": "resources/light/add.svg",
@@ -72,8 +75,8 @@
 				}
 			},
 			{
-				"command": "Notes.refresh",
-				"title": "Refresh notes",
+				"command": "Notes.refreshNotes",
+				"title": "Refresh Notes",
 				"category": "Notes",
 				"icon": {
 					"light": "resources/light/refresh.svg",
@@ -81,27 +84,27 @@
 				}
 			},
 			{
-				"command": "Notes.rename",
-				"title": "Rename note",
+				"command": "Notes.renameNote",
+				"title": "Rename Note",
 				"icon": {
-					"light": "resources/light/refresh.svg",
-					"dark": "resources/dark/refresh.svg"
+					"light": "resources/light/rename.svg",
+					"dark": "resources/dark/rename.svg"
 				}
 			},
 			{
-				"command": "Notes.setup",
-				"title": "Select location to store notes",
+				"command": "Notes.setupNotes",
+				"title": "Select notes storage location.",
 				"category": "Notes"
 			}
 		],
 		"keybindings": [
 			{
-				"command": "Notes.list",
+				"command": "Notes.listNotes",
 				"key": "alt+l",
 				"mac": "alt+l"
 			},
 			{
-				"command": "Notes.new",
+				"command": "Notes.newNote",
 				"key": "alt+n",
 				"mac": "alt+n"
 			}
@@ -109,25 +112,25 @@
 		"menus": {
 			"view/title": [
 				{
-					"command": "Notes.refresh",
+					"command": "Notes.refreshNotes",
 					"when": "view == notes",
 					"group": "navigation@1"
 				},
 				{
-					"command": "Notes.new",
+					"command": "Notes.newNote",
 					"when": "view == notes",
 					"group": "navigation@2"
 				}
 			],
 			"view/item/context": [
 				{
-					"command": "Notes.rename",
-					"when": "view == notes",
+					"command": "Notes.renameNote",
+					"when": "view == notes && viewItem == note",
 					"group": "inline@1"
 				},
 				{
-					"command": "Notes.delete",
-					"when": "view == notes",
+					"command": "Notes.deleteNote",
+					"when": "view == notes && viewItem == note",
 					"group": "inline@2"
 				}
 			]
@@ -137,7 +140,7 @@
 				{
 					"id": "vscode-notes",
 					"title": "Notes",
-					"icon": "resources/activitybar-notes.svg"
+					"icon": "resources/notes-light.svg"
 				}
 			]
 		},

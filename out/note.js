@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vscode = require("vscode");
 const path = require("path");
 class Note extends vscode.TreeItem {
-    constructor(label, location, collapsibleState, command) {
-        super(label);
-        this.label = label;
+    constructor(name, location, collapsibleState, command) {
+        super(name);
+        this.name = name;
         this.location = location;
         this.collapsibleState = collapsibleState;
         this.command = command;
@@ -16,7 +16,7 @@ class Note extends vscode.TreeItem {
         this.contextValue = 'note';
     }
     get tooltip() {
-        return `${this.label}`;
+        return `${this.name}`;
     }
 }
 exports.Note = Note;

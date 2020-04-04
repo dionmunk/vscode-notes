@@ -4,16 +4,16 @@ import * as path from 'path';
 export class Note extends vscode.TreeItem {
 
 	constructor(
-		public readonly label: string,
+		public readonly name: string,
 		public readonly location: string,
 		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
 		public readonly command?: vscode.Command
 	) {
-		super(label);
+		super(name);
 	}
 
 	get tooltip(): string {
-		return `${this.label}`;
+		return `${this.name}`;
 	}
 
 	iconPath = {
