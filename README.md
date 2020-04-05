@@ -6,6 +6,8 @@
 
 Notes is a Markdown focused notes extension for Visual Studio Code that takes inspiration from Notational Velocity and nvAlt.
 
+![Notes Demo](/screenshots/screenshot.png?raw=true "Notes Demo")
+
 ## Features
 
 Notes are stored in a single location (directory) located anywhere on your system you'd like. This allows you to store notes locally or inside a cloud service like Dropbox, iCloud Drive, Google Drive, OneDrive, etc. Notes are written in Markdown and are stored as **.md** files within the Notes storage directory. You should always name your notes with a **.md** file extension or Notes will not be able to see them. The reason for this is to make sure that Notes are cross-compatible with other Markdown applications.
