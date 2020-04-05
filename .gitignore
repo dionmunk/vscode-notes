@@ -1,6 +1,0 @@
-**/*.vsix
-.vscode
-node_modules
-notes
-src
-_source
