@@ -1,0 +1,10 @@
+.notes
+.vscode
+.vscode-test
+_source
+dist
+node_modules
+notes
+out
+NOTES.md
+**/*.vsix
