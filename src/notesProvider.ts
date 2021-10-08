@@ -64,7 +64,7 @@ export class NotesProvider implements vscode.TreeDataProvider<Note> {
 			};
 			// get list of markdown files in notes location and save them in a list called listOfNotes
 			// this is markdown focused so markdown is hard coded
-			const notes = gl.sync(`*.md`, { cwd: notesLocation, nodir: true, nocase: true }).map(listOfNotes);
+			const notes = gl.sync(`*.{md,markdown,txt}`, { cwd: notesLocation, nodir: true, nocase: true }).map(listOfNotes);
 			// return the list of notes
 			return notes;
 		}
