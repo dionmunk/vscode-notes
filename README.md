@@ -2,7 +2,7 @@
 
 [![Creative Commons](https://flat.badgen.net/badge/license/CC-BY-NC-4.0/orange)](https://creativecommons.org/licenses/by-nc/4.0/)
 [![GitHub](https://flat.badgen.net/github/release/dionmunk/vscode-notes/)](https://github.com/dionmunk/vscode-notes/releases)
-[![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/dionmunk.vscode-notes.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=dionmunk.vscode-notes)
+[![Visual Studio Marketplace](https://vsmarketplacebadges.dev/installs/dionmunk.vscode-notes.png?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=dionmunk.vscode-notes)
 
 Notes is a Markdown focused notes extension for Visual Studio Code that takes inspiration from Notational Velocity and nvAlt.
 

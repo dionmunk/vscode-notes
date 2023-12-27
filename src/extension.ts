@@ -13,8 +13,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	console.log('"vscode-notes" is active.');
 
-	// register tree view provider
-	let notesTree = new NotesProvider(String(Notes.getNotesLocation()));
+	// get Notes configuration
+	let notesTree = new NotesProvider(String(Notes.getNotesLocation()), String(Notes.getNotesExtensions()));
 	vscode.window.registerTreeDataProvider('notes', notesTree.init());
 
 	/*
@@ -85,6 +85,14 @@ export class Notes {
 	static getNotesLocation() {
 		return vscode.workspace.getConfiguration('Notes').get('notesLocation');
 	}
+	// get notes default extension
+	static getNotesDefaultNoteExtension() {
+		return vscode.workspace.getConfiguration('Notes').get('notesDefaultNoteExtension');
+	}
+	// get notes default extension
+	static getNotesExtensions() {
+		return vscode.workspace.getConfiguration('Notes').get('notesExtensions');
+	}
 
 	// delete note
 	static deleteNote(note: Note, tree: NotesProvider): void {
@@ -112,6 +120,7 @@ export class Notes {
 	// list notes
 	static listNotes(): void {
 		let notesLocation = String(Notes.getNotesLocation());
+		let notesExtensions = String(Notes.getNotesExtensions());
 		// read files in storage location
 		fs.readdir(String(notesLocation), (err, files) => {
 			if (err) {
@@ -132,6 +141,7 @@ export class Notes {
 	// new note
 	static newNote(tree: NotesProvider): void {
 		let notesLocation = String(Notes.getNotesLocation());
+		let notesDefaultNoteExtension = String(Notes.getNotesDefaultNoteExtension());
 		// prompt user for a new note name
 		vscode.window.showInputBox({
 			prompt: 'Note name?',
@@ -140,18 +150,18 @@ export class Notes {
 			// set note name
 			let fileName: string = `${noteName}`;
 			// set note path
-			let filePath: string = path.join(String(notesLocation), `${fileName.replace(/\:/gi, '')}.md`);
+			let filePath: string = path.join(String(notesLocation), `${fileName.replace(/\:/gi, '')}.${notesDefaultNoteExtension}`);
 			// set note first line
 			let firstLine: string = "# " + fileName + "\n\n";
 			// does note exist already?
 			let noteExists = fs.existsSync(String(filePath));
 			// if user entered name then create new note
-			if(noteName) {
+			if (noteName) {
 				// if a note with name doesn't already exist
-				if(!noteExists) {
+				if (!noteExists) {
 					// try writing the file to the storage location
 					fs.writeFile(filePath, firstLine, err => {
-						if(err) {
+						if (err) {
 							// report error
 							console.error(err);
 							return vscode.window.showErrorMessage('Failed to create the new note.');
@@ -161,7 +171,7 @@ export class Notes {
 							let file = vscode.Uri.file(filePath);
 							vscode.window.showTextDocument(file).then(() => {
 								// go to last line in new file
-								vscode.commands.executeCommand('cursorMove', {'to': 'viewPortBottom'});
+								vscode.commands.executeCommand('cursorMove', { 'to': 'viewPortBottom' });
 							});
 						}
 					});
@@ -192,9 +202,9 @@ export class Notes {
 	// rename note
 	static renameNote(note: Note, tree: NotesProvider): void {
 		// prompt user for new note name
-		vscode.window.showInputBox({ 
+		vscode.window.showInputBox({
 			prompt: 'New note name?',
-			value: note.name 
+			value: note.name
 		}).then(noteName => {
 			// if no new note name or note name didn't change
 			if (!noteName || noteName === note.name) {
@@ -234,14 +244,14 @@ export class Notes {
 
 		// display open dialog with above options
 		vscode.window.showOpenDialog(openDialogOptions).then(fileUri => {
-			if(fileUri && fileUri[0]) {
+			if (fileUri && fileUri[0]) {
 				// get Notes configuration
 				let notesConfiguration = vscode.workspace.getConfiguration('Notes');
 				// update Notes configuration with selected location
 				notesConfiguration.update('notesLocation', path.normalize(fileUri[0].fsPath), true).then(() => {
 					// prompt to reload window so storage location change can take effect
 					vscode.window.showWarningMessage(
-						`You must reload the window for the storage location change to take effect.`, 
+						`You must reload the window for the storage location change to take effect.`,
 						'Reload'
 					).then(selectedAction => {
 						// if the user selected to reload the window then reload

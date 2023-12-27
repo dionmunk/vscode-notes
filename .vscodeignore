@@ -1,7 +1,6 @@
 .vscode/**
 .vscode-test/**
 _source/**
-dist/**
 notes/**
 out/**
 src/**

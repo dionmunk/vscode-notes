@@ -2,11 +2,23 @@
 
 All notable changes to the "vscode-notes" extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.1.0]
+## [1.2.0] - 2023-12-27
+
+### Added
+
+* new Notes.notesDefaultNotesExtension setting to set extension of new notes. The default is `md`.
+* new Notes.notesExtensions setting to allow Notes to detect different file types when generating a list of notes. Must be a comma separated list of file extensions eg: `md,markdown,txt` etc. The default is `md,markdown,txt`.
+
+### Fixed
+
+* Updated packages and requirements to latest versions.
+
+## [1.1.0] - 2020-04-04
 
 ### Added
 
@@ -29,5 +41,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 * list new notes
 
 [Unreleased]: https://github.com/dionmunk/vscode-notes/compare/v1.1.0...HEAD
+[1.2.0]: https://github.com/dionmunk/vscode-notes/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/dionmunk/vscode-notes/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/dionmunk/vscode-notes/compare/v1.0.0
