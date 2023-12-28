@@ -2,7 +2,7 @@
 	"name": "vscode-notes",
 	"displayName": "Notes",
 	"description": "Notes is a Markdown focused notes extension for Visual Studio Code that takes inspiration from Notational Velocity and nvAlt.",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"publisher": "dionmunk",
 	"license": "CC-BY-NC-4.0",
 	"author": {

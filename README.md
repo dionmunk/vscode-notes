@@ -27,6 +27,8 @@ Notes will prompt you for a storage location the first time you access the exten
 This extension contributes the following settings:
 
 * `Notes.notesLocation`: location where notes are stored
+* `Notes.notesDefaultNotesExtension`: extension used for new notes
+* `Notes.notesExtensions`: list of extensions recognized as notes
 
 ## Future Plans
 

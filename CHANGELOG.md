@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2023-12-28
+
+### Added
+
+* new sidebar icon
+
 ## [1.2.0] - 2023-12-27
 
 ### Added
@@ -40,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * create a new note
 * list new notes
 
-[Unreleased]: https://github.com/dionmunk/vscode-notes/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/dionmunk/vscode-notes/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/dionmunk/vscode-notes/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/dionmunk/vscode-notes/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/dionmunk/vscode-notes/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/dionmunk/vscode-notes/compare/v1.0.0
