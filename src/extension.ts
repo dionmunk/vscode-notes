@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Note } from './note';
-import { NotesProvider } from './notesProvider';
+import { NotesViewProvider } from './notesViewProvider';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
@@ -14,8 +14,27 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log('"vscode-notes" is active.');
 
 	// get Notes configuration
-	let notesTree = new NotesProvider(String(Notes.getNotesLocation()), String(Notes.getNotesExtensions()));
+	let notesTree = new NotesViewProvider(String(Notes.getNotesLocation()), String(Notes.getNotesExtensions()));
 	vscode.window.registerTreeDataProvider('notes', notesTree.init());
+
+	// Listen for configuration changes
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration(e => {
+			// Check if notes.notesLocation setting changed
+			if (e.affectsConfiguration('notes.notesLocation')) {
+				// Prompt to reload window so storage location change can take effect
+				vscode.window.showWarningMessage(
+					`The Notes extension detected a change in the storage location. You must reload the window for the change to take effect.`,
+					'Reload'
+				).then(selectedAction => {
+					// if the user selected to reload the window then reload
+					if (selectedAction === 'Reload') {
+						vscode.commands.executeCommand('workbench.action.reloadWindow');
+					}
+				});
+			}
+		})
+	);
 
 	/*
 	* register commands
@@ -113,7 +132,7 @@ export class Notes {
 	}
 
 	// delete note
-	static deleteNote(note: Note, tree: NotesProvider): void {
+	static deleteNote(note: Note, tree: NotesViewProvider): void {
 		// prompt user for confirmation
 		vscode.window.showWarningMessage(`Are you sure you want to delete '${note.name}'? This action is permanent and can not be reversed.`, 'Yes', 'No').then(result => {
 			// if the user answers Yes
@@ -136,7 +155,7 @@ export class Notes {
 	}
 
 	// delete folder
-	static deleteFolder(folder: Note, tree: NotesProvider): void {
+	static deleteFolder(folder: Note, tree: NotesViewProvider): void {
 		if (!folder.isFolder) {
 			vscode.window.showErrorMessage('Selected item is not a folder.');
 			return;
@@ -191,7 +210,7 @@ export class Notes {
 	}
 
 	// new note
-	static newNote(tree: NotesProvider, folder?: Note): void {
+	static newNote(tree: NotesViewProvider, folder?: Note): void {
 		// Determine the location where the note should be created
 		let notesLocation = folder ? path.join(folder.location, folder.name) : String(Notes.getNotesLocation());
 		let notesDefaultNoteExtension = String(Notes.getNotesDefaultNoteExtension());
@@ -243,7 +262,7 @@ export class Notes {
 	}
 
 	// new folder
-	static newFolder(tree: NotesProvider, parentFolder?: Note): void {
+	static newFolder(tree: NotesViewProvider, parentFolder?: Note): void {
 		// Determine the location where the folder should be created
 		let parentLocation = parentFolder ? path.join(parentFolder.location, parentFolder.name) : String(Notes.getNotesLocation());
 
@@ -310,13 +329,13 @@ export class Notes {
 	}
 
 	// refresh notes
-	static refreshNotes(tree: NotesProvider): void {
+	static refreshNotes(tree: NotesViewProvider): void {
 		// refresh tree
 		tree.refresh();
 	}
 
 	// rename note
-	static renameNote(note: Note, tree: NotesProvider): void {
+	static renameNote(note: Note, tree: NotesViewProvider): void {
 		// If it's a folder, don't try to rename it as a note
 		if (note.isFolder) {
 			return;
@@ -374,7 +393,7 @@ export class Notes {
 	}
 
 	// rename folder
-	static renameFolder(folder: Note, tree: NotesProvider): void {
+	static renameFolder(folder: Note, tree: NotesViewProvider): void {
 		// If it's not a folder, don't try to rename it as a folder
 		if (!folder.isFolder) {
 			return;
@@ -409,8 +428,16 @@ export class Notes {
 	}
 
 	// setup notes
-	static setupNotes(): void {
-		// dialog options
+	static setupNotes(tree?: NotesViewProvider): void {
+		// Check if notesLocation is not null
+		const notesLocation = Notes.getNotesLocation();
+		if (notesLocation) {
+			// If notesLocation is not null, take the user to the extension settings
+			vscode.commands.executeCommand('workbench.action.openSettings', `@ext:dionmunk.vscode-notes`);
+			return;
+		}
+
+		// If notesLocation is null, show dialog to select a folder
 		let openDialogOptions: vscode.OpenDialogOptions = {
 			canSelectFiles: false,
 			canSelectFolders: true,
@@ -427,7 +454,7 @@ export class Notes {
 				notesConfiguration.update('notesLocation', path.normalize(fileUri[0].fsPath), true).then(() => {
 					// prompt to reload window so storage location change can take effect
 					vscode.window.showWarningMessage(
-						`You must reload the window for the storage location change to take effect.`,
+						`The Notes extension detected a change in the storage location. You must reload the window for the change to take effect.`,
 						'Reload'
 					).then(selectedAction => {
 						// if the user selected to reload the window then reload

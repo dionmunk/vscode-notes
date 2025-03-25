@@ -24,7 +24,7 @@
 	},
 	"icon": "resources/icon.png",
 	"engines": {
-		"vscode": "^1.75.0"
+		"vscode": "^1.87.0"
 	},
 	"categories": [
 		"Other"
@@ -33,7 +33,6 @@
 	"main": "./dist/extension",
 	"contributes": {
 		"configuration": {
-			"type": "object",
 			"title": "Notes",
 			"properties": {
 				"notes.notesLocation": {
@@ -49,7 +48,7 @@
 				"notes.notesExtensions": {
 					"type": "string",
 					"default": "*",
-					"description": "A comma separated list of allowed extensions for notes. Use '*' to allow all file types. (do not include the dot or spaces)"
+					"description": "A comma separated list of allowed extensions for notes. Use '*' (asterisk) to allow all file types. (do not include the dot or spaces)"
 				}
 			}
 		},
@@ -79,13 +78,13 @@
 				"command": "Notes.newNote",
 				"title": "New Note",
 				"category": "Notes",
-				"icon": "$(plus)"
+				"icon": "$(new-file)"
 			},
 			{
 				"command": "Notes.newFolder",
 				"title": "New Folder",
 				"category": "Notes",
-				"icon": "$(folder)"
+				"icon": "$(new-folder)"
 			},
 			{
 				"command": "Notes.refreshNotes",
@@ -111,7 +110,7 @@
 			},
 			{
 				"command": "Notes.setupNotes",
-				"title": "Select Storage Location",
+				"title": "Settings",
 				"category": "Notes",
 				"icon": "$(gear)"
 			}
@@ -181,6 +180,21 @@
 					"command": "Notes.newFolder",
 					"when": "view == notes && viewItem == folder",
 					"group": "2_workspace@2"
+				},
+				{
+					"command": "Notes.newNote",
+					"when": "view == notes && !viewItem",
+					"group": "navigation@1"
+				},
+				{
+					"command": "Notes.newFolder",
+					"when": "view == notes && !viewItem",
+					"group": "navigation@2"
+				},
+				{
+					"command": "Notes.refreshNotes",
+					"when": "view == notes && !viewItem",
+					"group": "navigation@3"
 				}
 			]
 		},
@@ -209,7 +223,7 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "webpack --mode production",
+		"vscode:prepublish": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode production",
 		"compile": "tsc -p ./",
 		"lint": "eslint src --ext ts",
 		"watch": "tsc -watch -p ./",
@@ -220,24 +234,24 @@
 		"test-compile": "tsc -p ./"
 	},
 	"devDependencies": {
-		"@types/glob": "^7.1.1",
-		"@types/mkdirp": "^1.0.0",
-		"@types/mocha": "^7.0.1",
-		"@types/node": "^12.11.7",
-		"@types/rimraf": "^3.0.0",
-		"@types/vscode": "^1.43.0",
-		"@typescript-eslint/eslint-plugin": "^2.18.0",
-		"@typescript-eslint/parser": "^2.18.0",
-		"eslint": "^6.8.0",
-		"glob": "^7.1.6",
+		"@types/glob": "^8.1.0",
+		"@types/mkdirp": "^2.0.0",
+		"@types/mocha": "^10.0.6",
+		"@types/node": "^20.11.0",
+		"@types/rimraf": "^4.0.5",
+		"@types/vscode": "^1.87.0",
+		"@typescript-eslint/eslint-plugin": "^7.0.0",
+		"@typescript-eslint/parser": "^7.0.0",
+		"eslint": "^8.56.0",
+		"glob": "^10.3.10",
 		"mocha": "^10.2.0",
-		"ts-loader": "^6.2.2",
-		"typescript": "^3.7.5",
-		"vscode-test": "^1.3.0",
-		"webpack": "^4.42.1",
-		"webpack-cli": "^3.3.11"
+		"ts-loader": "^9.5.1",
+		"typescript": "^5.3.3",
+		"vscode-test": "^1.6.1",
+		"webpack": "^5.89.0",
+		"webpack-cli": "^5.1.4"
 	},
 	"dependencies": {
-		"vscode-uri": "^2.1.2"
+		"vscode-uri": "^3.0.8"
 	}
 }

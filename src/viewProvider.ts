@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as mkdirp from 'mkdirp';
-import * as rimraf from 'rimraf';
+import mkdirp from 'mkdirp';
+import rimraf from 'rimraf';
 import * as Uri from 'vscode-uri';
 import { Notes } from './extension';
 
@@ -60,25 +60,25 @@ namespace _ {
 
 	export function readdir(path: string): Promise<string[]> {
 		return new Promise<string[]>((resolve, reject) => {
-			fs.readdir(path, (error, children) => handleResult(resolve, reject, error, normalizeNFC(children)));
+			fs.readdir(path, (error: NodeJS.ErrnoException | null, children) => handleResult(resolve, reject, error, normalizeNFC(children)));
 		});
 	}
 
 	export function stat(path: string): Promise<fs.Stats> {
 		return new Promise<fs.Stats>((resolve, reject) => {
-			fs.stat(path, (error, stat) => handleResult(resolve, reject, error, stat));
+			fs.stat(path, (error: NodeJS.ErrnoException | null, stat) => handleResult(resolve, reject, error, stat));
 		});
 	}
 
 	export function readfile(path: string): Promise<Buffer> {
 		return new Promise<Buffer>((resolve, reject) => {
-			fs.readFile(path, (error, buffer) => handleResult(resolve, reject, error, buffer));
+			fs.readFile(path, (error: NodeJS.ErrnoException | null, buffer) => handleResult(resolve, reject, error, buffer));
 		});
 	}
 
 	export function writefile(path: string, content: Buffer): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
-			fs.writeFile(path, content, error => handleResult(resolve, reject, error, void 0));
+			fs.writeFile(path, content, (error: NodeJS.ErrnoException | null) => handleResult(resolve, reject, error, void 0));
 		});
 	}
 
@@ -90,26 +90,25 @@ namespace _ {
 
 	export function rmrf(path: string): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
-			rimraf(path, error => handleResult(resolve, reject, error, void 0));
+			rimraf(path, (error: Error | null) => handleResult(resolve, reject, error, void 0));
 		});
 	}
 
 	export function mkdir(path: string): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
-			// mkdirp(path, error => handleResult(resolve, reject, error, void 0));
-			return;
+			mkdirp(path).then(() => resolve()).catch((error: Error) => reject(error));
 		});
 	}
 
 	export function rename(oldPath: string, newPath: string): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
-			fs.rename(oldPath, newPath, error => handleResult(resolve, reject, error, void 0));
+			fs.rename(oldPath, newPath, (error: NodeJS.ErrnoException | null) => handleResult(resolve, reject, error, void 0));
 		});
 	}
 
 	export function unlink(path: string): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
-			fs.unlink(path, error => handleResult(resolve, reject, error, void 0));
+			fs.unlink(path, (error: NodeJS.ErrnoException | null) => handleResult(resolve, reject, error, void 0));
 		});
 	}
 }
@@ -169,15 +168,18 @@ export class FileSystemProvider implements vscode.TreeDataProvider<Entry>, vscod
 	}
 
 	watch(uri: vscode.Uri, options: { recursive: boolean; excludes: string[]; }): vscode.Disposable {
-		const watcher = fs.watch(uri.fsPath, { recursive: options.recursive }, async (event: string, filename: string | Buffer) => {
-			const filepath = path.join(uri.fsPath, _.normalizeNFC(filename.toString()));
+		// Use a more compatible version of fs.watch
+		const watcher = fs.watch(uri.fsPath, async (event: string, filename: string | Buffer | null) => {
+			if (filename) {
+				const filepath = path.join(uri.fsPath, _.normalizeNFC(filename.toString()));
 
-			// TODO support excludes (using minimatch library?)
+				// TODO support excludes (using minimatch library?)
 
-			this._onDidChangeFile.fire([{
-				type: event === 'change' ? vscode.FileChangeType.Changed : await _.exists(filepath) ? vscode.FileChangeType.Created : vscode.FileChangeType.Deleted,
-				uri: uri.with({ path: filepath })
-			} as vscode.FileChangeEvent]);
+				this._onDidChangeFile.fire([{
+					type: event === 'change' ? vscode.FileChangeType.Changed : await _.exists(filepath) ? vscode.FileChangeType.Created : vscode.FileChangeType.Deleted,
+					uri: uri.with({ path: filepath })
+				} as vscode.FileChangeEvent]);
+			}
 		});
 
 		return { dispose: () => watcher.close() };
