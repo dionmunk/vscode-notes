@@ -2,7 +2,7 @@
 	"name": "vscode-notes",
 	"displayName": "Notes",
 	"description": "Notes is a Markdown focused notes extension for Visual Studio Code that takes inspiration from Notational Velocity and nvAlt.",
-	"version": "1.2.1",
+	"version": "1.2.3",
 	"publisher": "dionmunk",
 	"license": "CC-BY-NC-4.0",
 	"author": {
@@ -34,22 +34,22 @@
 	"contributes": {
 		"configuration": {
 			"type": "object",
-			"title": "Configuration",
+			"title": "Notes",
 			"properties": {
-				"Notes.notesLocation": {
+				"notes.notesLocation": {
 					"type": "string",
 					"default": "",
 					"description": "Storage location for notes."
 				},
-				"Notes.notesDefaultNoteExtension": {
+				"notes.notesDefaultNoteExtension": {
 					"type": "string",
 					"default": "md",
 					"description": "The default extension to use for new notes. (do not include the dot)"
 				},
-				"Notes.notesExtensions": {
+				"notes.notesExtensions": {
 					"type": "string",
-					"default": "md,markdown,txt",
-					"description": "A comma separated list of allowed extensions for notes. (do not include the dot or spaces)"
+					"default": "*",
+					"description": "A comma separated list of allowed extensions for notes. Use '*' to allow all file types. (do not include the dot or spaces)"
 				}
 			}
 		},
@@ -57,6 +57,14 @@
 			{
 				"command": "Notes.deleteNote",
 				"title": "Delete Note",
+				"icon": {
+					"light": "resources/light/delete.svg",
+					"dark": "resources/dark/delete.svg"
+				}
+			},
+			{
+				"command": "Notes.deleteFolder",
+				"title": "Delete Folder",
 				"icon": {
 					"light": "resources/light/delete.svg",
 					"dark": "resources/dark/delete.svg"
@@ -71,19 +79,19 @@
 				"command": "Notes.newNote",
 				"title": "New Note",
 				"category": "Notes",
-				"icon": {
-					"light": "resources/light/add.svg",
-					"dark": "resources/dark/add.svg"
-				}
+				"icon": "$(plus)"
+			},
+			{
+				"command": "Notes.newFolder",
+				"title": "New Folder",
+				"category": "Notes",
+				"icon": "$(folder)"
 			},
 			{
 				"command": "Notes.refreshNotes",
 				"title": "Refresh Notes",
 				"category": "Notes",
-				"icon": {
-					"light": "resources/light/refresh.svg",
-					"dark": "resources/dark/refresh.svg"
-				}
+				"icon": "$(refresh)"
 			},
 			{
 				"command": "Notes.renameNote",
@@ -94,13 +102,18 @@
 				}
 			},
 			{
+				"command": "Notes.renameFolder",
+				"title": "Rename Folder",
+				"icon": {
+					"light": "resources/light/rename.svg",
+					"dark": "resources/dark/rename.svg"
+				}
+			},
+			{
 				"command": "Notes.setupNotes",
 				"title": "Select Storage Location",
 				"category": "Notes",
-				"icon": {
-					"light": "resources/light/settings.svg",
-					"dark": "resources/dark/settings.svg"
-				}
+				"icon": "$(gear)"
 			}
 		],
 		"keybindings": [
@@ -118,31 +131,56 @@
 		"menus": {
 			"view/title": [
 				{
-					"command": "Notes.setupNotes",
+					"command": "Notes.newNote",
 					"when": "view == notes",
 					"group": "navigation@1"
 				},
 				{
-					"command": "Notes.refreshNotes",
+					"command": "Notes.newFolder",
 					"when": "view == notes",
 					"group": "navigation@2"
 				},
 				{
-					"command": "Notes.newNote",
+					"command": "Notes.refreshNotes",
 					"when": "view == notes",
 					"group": "navigation@3"
+				},
+				{
+					"command": "Notes.setupNotes",
+					"when": "view == notes",
+					"group": "navigation@4"
 				}
 			],
 			"view/item/context": [
 				{
 					"command": "Notes.renameNote",
 					"when": "view == notes && viewItem == note",
-					"group": "inline@1"
+					"group": "1_modification@1"
 				},
 				{
 					"command": "Notes.deleteNote",
 					"when": "view == notes && viewItem == note",
-					"group": "inline@2"
+					"group": "1_modification@2"
+				},
+				{
+					"command": "Notes.renameFolder",
+					"when": "view == notes && viewItem == folder",
+					"group": "1_modification@1"
+				},
+				{
+					"command": "Notes.deleteFolder",
+					"when": "view == notes && viewItem == folder",
+					"group": "1_modification@2"
+				},
+				{
+					"command": "Notes.newNote",
+					"when": "view == notes && viewItem == folder",
+					"group": "2_workspace@1"
+				},
+				{
+					"command": "Notes.newFolder",
+					"when": "view == notes && viewItem == folder",
+					"group": "2_workspace@2"
 				}
 			]
 		},
