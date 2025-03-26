@@ -10,7 +10,7 @@ Notes is a Markdown focused notes extension for Visual Studio Code that takes in
 
 ## Features
 
-Notes are stored in a single location (directory) located anywhere on your system you'd like. This allows you to store notes locally or inside a cloud service like Dropbox, iCloud Drive, Google Drive, OneDrive, etc. Notes are written in Markdown and are stored as **.md** files within the Notes storage directory. You should always name your notes with a **.md** file extension or Notes will not be able to see them. The reason for this is to make sure that Notes are cross-compatible with other Markdown applications.
+Notes are stored in a single location (directory) located anywhere on your system you'd like. This allows you to store notes locally or inside a cloud service like Dropbox, iCloud Drive, Google Drive, OneDrive, etc. Notes are written in Markdown and are stored as **.md** by default, but you can change this to whatever you want. It's recommended to name your notes with a file extension, like **.md**, or VS Code won't know how to render your note correctly.
 
 The extension can be accessed using the Notes icon that is placed in the Activity Bar, or in the Command Pallet (CMD+Shift+P or CTRL+Shift+P) by typing `Notes`.
 
@@ -20,7 +20,7 @@ The extension can be accessed using the Notes icon that is placed in the Activit
 
 ## Getting Started
 
-Notes will prompt you for a storage location the first time you access the extension from the Activity Bar or through the Command Pallet. If you would like to change the storage location, later on, you can access the Notes Setup from the Command Pallet. After you've selected a storage location, you can access your notes from the Notes icon in the Activity Bar, or through the Command Pallet.
+Notes will prompt you for a storage location the first time you access the extension from the Activity Bar or through the Command Pallet. If you would like to change the storage location, later on, you can access the Notes extension settings by clicking on the gear icon in Notes or from the Command Pallet. After you've selected a storage location, you can access your notes from the Notes icon in the Activity Bar, or through the Command Pallet.
 
 ## Extension Settings
 
@@ -28,7 +28,7 @@ This extension contributes the following settings:
 
 * `Notes.notesLocation`: location where notes are stored
 * `Notes.notesDefaultNotesExtension`: extension used for new notes
-* `Notes.notesExtensions`: list of extensions recognized as notes
+* `Notes.notesExtensions`: list of extensions recognized as notes or '*' for all extensions
 
 ## Future Plans
 
