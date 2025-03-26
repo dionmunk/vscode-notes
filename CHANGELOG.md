@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-03-26
+
+### Added
+
+* directory support
+
+## changed
+
+* note filetype support
+* setup functionality
+* icons
+
 ## [1.2.1] - 2023-12-28
 
 ### Added
