@@ -210,10 +210,10 @@ export class Notes {
 	}
 
 	// new note
-	static newNote(tree: NotesViewProvider, folder?: Note): void {
+	static newNote(tree: NotesViewProvider, selectedNote?: Note): void {
 		// Determine the location where the note should be created
-		let notesLocation = folder ? path.join(folder.location, folder.name) : String(Notes.getNotesLocation());
-		let notesDefaultNoteExtension = String(Notes.getNotesDefaultNoteExtension());
+		let notesLocation = selectedNote ? (selectedNote.isDirectory ? selectedNote.fullPath : selectedNote.location) : String(Notes.getNotesLocation());
+		const notesDefaultNoteExtension = String(Notes.getNotesDefaultNoteExtension());
 
 		// prompt user for a new note name
 		vscode.window.showInputBox({
@@ -224,8 +224,30 @@ export class Notes {
 				return; // User cancelled
 			}
 
-			// set note name
-			let fileName: string = `${noteName}`;
+			if (/^[\\\/]/.test(noteName)) {
+				return vscode.window.showErrorMessage('New note name cannot start with a directory separator.');
+			}
+
+			// if a user enters a subdir as part of the new name, add that to the target location
+			const pathParts = noteName.split(/[\\\/]/);
+			const parentDirsInName = pathParts.slice(0, pathParts.length - 1);
+			const fileName = pathParts[pathParts.length - 1];
+
+
+			if (parentDirsInName.length > 0) {
+				notesLocation = path.join(notesLocation, ...parentDirsInName);
+
+				// create any target sub directories if they don't exist yet
+				if (!fs.existsSync(notesLocation)) {
+					fs.mkdir(notesLocation, { recursive: true }, err => {
+						if (err) {
+							console.error(err);
+							return vscode.window.showErrorMessage(`Failed to create the new subdirectories in ${notesLocation}.`);
+						}
+					});
+				}
+			}
+
 			// set note path
 			let filePath: string = path.join(notesLocation, `${fileName.replace(/\:/gi, '')}.${notesDefaultNoteExtension}`);
 			// set note first line
