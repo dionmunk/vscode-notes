@@ -60,7 +60,6 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
         if (this.pathExists(notesLocation)) {
             let entries: fs.Dirent[];
 
-            // First, add all folders
             try {
               entries = fs.readdirSync(notesLocation, { withFileTypes: true });
             } catch (err) {
@@ -70,7 +69,7 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
 
             const result: Note[] = entries
                 .filter(entry => {
-                  return notesExtensions === '*' || entry.isDirectory() || notesExtensions.includes(path.extname(entry.name))
+                  return entry.name != ".DS_Store" && entry.name != ".git" && (notesExtensions === '*' || entry.isDirectory()|| notesExtensions.includes(path.extname(entry.name)))
                 })
                 .map(entry => {
                   let note: Note;
