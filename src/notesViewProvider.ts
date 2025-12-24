@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as gl from 'glob';
 import * as path from 'path';
 import { Note } from './note';
 
