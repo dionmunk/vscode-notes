@@ -210,9 +210,9 @@ export class Notes {
 	}
 
 	// new note
-	static newNote(tree: NotesViewProvider, folder?: Note): void {
+	static newNote(tree: NotesViewProvider, selectedNote?: Note): void {
 		// Determine the location where the note should be created
-		let notesLocation = folder ? path.join(folder.location, folder.name) : String(Notes.getNotesLocation());
+		const notesLocation = selectedNote ? (selectedNote.isDirectory ? selectedNote.fullPath : selectedNote.location) : String(Notes.getNotesLocation());
 		let notesDefaultNoteExtension = String(Notes.getNotesDefaultNoteExtension());
 
 		// prompt user for a new note name
