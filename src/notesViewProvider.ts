@@ -58,32 +58,33 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
     getNotes(notesLocation: string, notesExtensions: string): Note[] {
         // if the notes location exists
         if (this.pathExists(notesLocation)) {
-            const result: Note[] = [];
+            let entries: fs.Dirent[];
 
             // First, add all folders
             try {
-                const items = fs.readdirSync(notesLocation, { withFileTypes: true });
+              entries = fs.readdirSync(notesLocation, { withFileTypes: true });
+            } catch (err) {
+              console.error('Error reading directory:', err);
+              entries = [];
+            }
 
-                // Add folders first
-                for (const item of items) {
-                    if (item.isDirectory()) {
-                        const folderPath = path.join(notesLocation, item.name);
-                        const folderNote = new Note(
-                            item.name,
-                            notesLocation,
-                            '', // category
-                            '', // tags
-                            true // isDirectory
-                        );
-                        result.push(folderNote);
-                    }
-                }
-
-                // Then add notes
-                const listOfNotes = (note: string): Note => {
+            const result: Note[] = entries
+                .filter(entry => {
+                  return notesExtensions === '*' || entry.isDirectory() || notesExtensions.includes(path.extname(entry.name))
+                })
+                .map(entry => {
+                  if (entry.isDirectory()) {
+                    return new Note(
+                        entry.name,
+                        notesLocation,
+                        '', // category
+                        '', // tags
+                        true // isDirectory
+                    );
+                  } else {
                     // return a note with the given note name, notes location, empty category, empty tags, and the command to open the note
                     return new Note(
-                        path.basename(note),
+                        entry.name,
                         notesLocation,
                         '', // category
                         '', // tags
@@ -91,23 +92,10 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
                         {
                             command: 'Notes.openNote',
                             title: '',
-                            arguments: [path.join(notesLocation, note)]
+                            arguments: [path.join(notesLocation, entry.name)]
                         });
-                };
-
-                // get the list of notes in the notes location
-                let notes;
-                if (notesExtensions === '*') {
-                    // If '*' is specified, get all files (excluding directories)
-                    notes = gl.sync('*', { cwd: notesLocation, nodir: true, nocase: true }).map(listOfNotes);
-                } else {
-                    // Otherwise, filter by the specified extensions
-                    notes = gl.sync(`*.{${notesExtensions}}`, { cwd: notesLocation, nodir: true, nocase: true }).map(listOfNotes);
-                }
-                result.push(...notes);
-            } catch (err) {
-                console.error('Error reading directory:', err);
-            }
+                  }
+                });
 
             // Sort: folders first, then notes alphabetically
             result.sort((a, b) => {
@@ -117,6 +105,7 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
                 if (!a.isFolder && b.isFolder) {
                     return 1;
                 }
+
                 return a.name.localeCompare(b.name);
             });
 
