@@ -73,8 +73,10 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
                   return notesExtensions === '*' || entry.isDirectory() || notesExtensions.includes(path.extname(entry.name))
                 })
                 .map(entry => {
+                  let note: Note;
+
                   if (entry.isDirectory()) {
-                    return new Note(
+                    note = new Note(
                         entry.name,
                         notesLocation,
                         '', // category
@@ -83,7 +85,7 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
                     );
                   } else {
                     // return a note with the given note name, notes location, empty category, empty tags, and the command to open the note
-                    return new Note(
+                    note = new Note(
                         entry.name,
                         notesLocation,
                         '', // category
@@ -95,19 +97,29 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
                             arguments: [path.join(notesLocation, entry.name)]
                         });
                   }
-                });
 
-            // Sort: folders first, then notes alphabetically
-            result.sort((a, b) => {
-                if (a.isFolder && !b.isFolder) {
-                    return -1;
-                }
-                if (!a.isFolder && b.isFolder) {
-                    return 1;
-                }
+                  return { note, time: fs.statSync(note.fullPath).mtime.getTime() };
+                })
+              // Sort: folders first, then notes alphabetically
+              .sort((a, b) => {
+                  if (a.note.isFolder && !b.note.isFolder) {
+                      return -1;
+                  }
 
-                return a.name.localeCompare(b.name);
-            });
+                  if (!a.note.isFolder && b.note.isFolder) {
+                      return 1;
+                  }
+
+                  // Sort descending newest to oldest
+                  const timeDelta = b.time - a.time;
+
+                  if (timeDelta !== 0) {
+                    return timeDelta;
+                  }
+
+                  return a.note.name.localeCompare(b.note.name);
+              })
+              .map(({ note }) => note);
 
             return result;
         }
