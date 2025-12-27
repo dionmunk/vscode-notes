@@ -14,6 +14,7 @@ export class Note extends vscode.TreeItem {
 		public readonly command?: vscode.Command
 	) {
 		super(name, isDirectory ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
+
 		this.name = name;
 		this.location = location;
 		this.category = category;

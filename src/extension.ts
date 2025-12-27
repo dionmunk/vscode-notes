@@ -3,7 +3,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Note } from './note';
+import { LabelsViewProvider } from './LabelsViewProvider';
 import { NotesViewProvider } from './notesViewProvider';
+import LabelId from './LabelId';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
@@ -16,6 +18,9 @@ export function activate(context: vscode.ExtensionContext) {
 	// get Notes configuration
 	let notesTree = new NotesViewProvider(String(Notes.getNotesLocation()), String(Notes.getNotesExtensions()));
 	vscode.window.registerTreeDataProvider('notes', notesTree.init());
+
+	let labelsTree = new LabelsViewProvider(Notes.getNotesLocation(), Notes.getNotesExtensions());
+	vscode.window.registerTreeDataProvider('labels', labelsTree.init());
 
 	// Listen for configuration changes
 	context.subscriptions.push(
@@ -34,6 +39,9 @@ export function activate(context: vscode.ExtensionContext) {
 				});
 			}
 		})
+	);
+	context.subscriptions.push(
+		vscode.workspace.onDidSaveTextDocument(e => console.log("Save event", e))
 	);
 
 	/*
@@ -82,6 +90,12 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(refreshNotesDisposable);
 
+	// filter notes
+	let filterNotesDisposable = vscode.commands.registerCommand('Notes.filterNotes', (labelId: LabelId) => {
+		Notes.filterNotes(labelId, notesTree, labelsTree);
+	});
+	context.subscriptions.push(filterNotesDisposable);
+
 	// rename note
 	let renameNoteDisposable = vscode.commands.registerCommand('Notes.renameNote', (note: Note) => {
 		Notes.renameNote(note, notesTree);
@@ -118,16 +132,25 @@ export class Notes {
 		this.settings = vscode.workspace.getConfiguration(extId);
 	}
 
-	// get notes storage location
-	static getNotesLocation() {
-		return vscode.workspace.getConfiguration('notes').get('notesLocation');
+	static getNotesLocation(): string | undefined {
+		const notesLocation = vscode.workspace.getConfiguration('notes').get<string>('notesLocation');
+
+		// Only return the notes location if the directory exists and is accessible.
+		if (notesLocation === undefined ||
+				!Notes.confirmIsDir(notesLocation) ||
+				!Notes.confirmIsPathAccessible(notesLocation)
+		) {
+			return undefined;
+		}
+
+		return	notesLocation;
 	}
-	// get notes default extension
-	static getNotesDefaultNoteExtension() {
-		return vscode.workspace.getConfiguration('notes').get('notesDefaultNoteExtension');
+
+	static getNotesDefaultNoteExtension(): string {
+		return vscode.workspace.getConfiguration('notes').get('notesDefaultNoteExtension')!!;
 	}
-	// get notes default extension
-	static getNotesExtensions() {
+
+	static getNotesExtensions(): string | undefined {
 		return vscode.workspace.getConfiguration('notes').get('notesExtensions');
 	}
 
@@ -213,7 +236,7 @@ export class Notes {
 	static newNote(tree: NotesViewProvider, folder?: Note): void {
 		// Determine the location where the note should be created
 		let notesLocation = folder ? path.join(folder.location, folder.name) : String(Notes.getNotesLocation());
-		let notesDefaultNoteExtension = String(Notes.getNotesDefaultNoteExtension());
+		let notesDefaultNoteExtension = Notes.getNotesDefaultNoteExtension();
 
 		// prompt user for a new note name
 		vscode.window.showInputBox({
@@ -332,6 +355,14 @@ export class Notes {
 	static refreshNotes(tree: NotesViewProvider): void {
 		// refresh tree
 		tree.refresh();
+	}
+
+	static filterNotes(labelId: LabelId, notesTree: NotesViewProvider, labelsTree: LabelsViewProvider): void {
+		console.log("Filter by", labelId);
+		const noteFilePaths = labelsTree.getFilteredNotes(labelId);
+		console.log("noteFilePaths", noteFilePaths);
+		notesTree.filterFiles(noteFilePaths);
+		notesTree.refresh()
 	}
 
 	// rename note
@@ -465,5 +496,29 @@ export class Notes {
 				});
 			}
 		});
+	}
+
+	static confirmIsPathAccessible(p: string): boolean {
+		try {
+			fs.accessSync(p);
+
+			return true;
+		} catch (err) {
+			console.warn(`Unable to confirm access to ${p}, error:`, err);
+
+			return false;
+		}
+	}
+
+	static confirmIsDir(p: string): boolean {
+		try {
+			fs.lstatSync(p).isDirectory();
+
+			return true;
+		} catch (err) {
+			console.warn(`Unable to confirm ${p} is a directory, error:`, err);
+
+			return false;
+		}
 	}
 }

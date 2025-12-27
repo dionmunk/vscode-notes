@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as gl from 'glob';
 import * as path from 'path';
 import { Note } from './note';
 
@@ -8,7 +7,7 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<Note | undefined> = new vscode.EventEmitter<Note | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Note | undefined> = this._onDidChangeTreeData.event;
-    private folderMap: Map<string, Note[]> = new Map<string, Note[]>();
+    private filteredFilePaths: string[] | undefined;
 
     // constructor for NotesViewProvider
     constructor(
@@ -27,6 +26,11 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
         this._onDidChangeTreeData.fire(undefined);
     }
 
+    filterFiles(filePaths: string[] | undefined): void {
+        this.filteredFilePaths = filePaths;
+        this.refresh();
+    }
+
     // get the parent of a note
     getTreeItem(note: Note): vscode.TreeItem {
         return note;
@@ -34,6 +38,7 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
 
     // get the children of a note
     getChildren(note?: Note): Thenable<Note[]> {
+        // TODO: Apply filteredFilePaths
         // if there is no notes location return an empty list
         if (!this.notesLocation) {
             return Promise.resolve([]);
@@ -42,7 +47,7 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
         // if there is a parent note and it's a folder
         if (note && note.isFolder) {
             // Return the children of this folder
-            return Promise.resolve(this.getNotes(note.fullPath, this.notesExtensions));
+            return Promise.resolve(this.getNotes(note.fullPath));
         }
         // if there is a note but it's not a folder, return empty list
         else if (note) {
@@ -50,40 +55,42 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
         }
         // else return the list of notes at the root level
         else {
-            return Promise.resolve(this.getNotes(this.notesLocation, this.notesExtensions));
+            return Promise.resolve(this.getNotes(this.notesLocation));
         }
     }
 
     // get the notes in the notes location
-    getNotes(notesLocation: string, notesExtensions: string): Note[] {
+    getNotes(notesLocation: string): Note[] {
         // if the notes location exists
         if (this.pathExists(notesLocation)) {
-            const result: Note[] = [];
+            let entries: fs.Dirent[];
 
-            // First, add all folders
             try {
-                const items = fs.readdirSync(notesLocation, { withFileTypes: true });
+              entries = fs.readdirSync(notesLocation, { withFileTypes: true });
+            } catch (err) {
+              console.error('Error reading directory:', err);
+              entries = [];
+            }
 
-                // Add folders first
-                for (const item of items) {
-                    if (item.isDirectory()) {
-                        const folderPath = path.join(notesLocation, item.name);
-                        const folderNote = new Note(
-                            item.name,
-                            notesLocation,
-                            '', // category
-                            '', // tags
-                            true // isDirectory
-                        );
-                        result.push(folderNote);
-                    }
-                }
+            const result: Note[] = entries
+                .filter(entry => {
+                  return entry.name != ".DS_Store" && entry.name != ".git" && (this.notesExtensions === '*' || entry.isDirectory() || this.notesExtensions.includes(path.extname(entry.name))) && (this.filteredFilePaths === undefined || this.filteredFilePaths.includes(path.join(notesLocation, entry.name)))
+                })
+                .map(entry => {
+                  let note: Note;
 
-                // Then add notes
-                const listOfNotes = (note: string): Note => {
+                  if (entry.isDirectory()) {
+                    note = new Note(
+                        entry.name,
+                        notesLocation,
+                        '', // category
+                        '', // tags
+                        true // isDirectory
+                    );
+                  } else {
                     // return a note with the given note name, notes location, empty category, empty tags, and the command to open the note
-                    return new Note(
-                        path.basename(note),
+                    note = new Note(
+                        entry.name,
                         notesLocation,
                         '', // category
                         '', // tags
@@ -91,34 +98,32 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
                         {
                             command: 'Notes.openNote',
                             title: '',
-                            arguments: [path.join(notesLocation, note)]
+                            arguments: [path.join(notesLocation, entry.name)]
                         });
-                };
+                  }
 
-                // get the list of notes in the notes location
-                let notes;
-                if (notesExtensions === '*') {
-                    // If '*' is specified, get all files (excluding directories)
-                    notes = gl.sync('*', { cwd: notesLocation, nodir: true, nocase: true }).map(listOfNotes);
-                } else {
-                    // Otherwise, filter by the specified extensions
-                    notes = gl.sync(`*.{${notesExtensions}}`, { cwd: notesLocation, nodir: true, nocase: true }).map(listOfNotes);
-                }
-                result.push(...notes);
-            } catch (err) {
-                console.error('Error reading directory:', err);
-            }
+                  return { note, time: fs.statSync(note.fullPath).mtime.getTime() };
+                })
+              // Sort: folders first, then notes alphabetically
+              .sort((a, b) => {
+                  if (a.note.isFolder && !b.note.isFolder) {
+                      return -1;
+                  }
 
-            // Sort: folders first, then notes alphabetically
-            result.sort((a, b) => {
-                if (a.isFolder && !b.isFolder) {
-                    return -1;
-                }
-                if (!a.isFolder && b.isFolder) {
-                    return 1;
-                }
-                return a.name.localeCompare(b.name);
-            });
+                  if (!a.note.isFolder && b.note.isFolder) {
+                      return 1;
+                  }
+
+                  // Sort descending newest to oldest
+                  const timeDelta = b.time - a.time;
+
+                  if (timeDelta !== 0) {
+                    return timeDelta;
+                  }
+
+                  return a.note.name.localeCompare(b.note.name);
+              })
+              .map(({ note }) => note);
 
             return result;
         }
