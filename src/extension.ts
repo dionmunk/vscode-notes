@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let notesTree = new NotesViewProvider(String(Notes.getNotesLocation()), String(Notes.getNotesExtensions()));
 	vscode.window.registerTreeDataProvider('notes', notesTree.init());
 
-	let labelsTree = new LabelsViewProvider(Notes.getNotesLocation(), Notes.getNotesExtensions());
+	let labelsTree = new LabelsViewProvider(Notes.getNotesLocation(), Notes.getNotesExtensions(), notesTree);
 	vscode.window.registerTreeDataProvider('labels', labelsTree.init());
 
 	// Listen for configuration changes
@@ -40,8 +40,19 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		})
 	);
+
+	// List for notes changes.
 	context.subscriptions.push(
-		vscode.workspace.onDidSaveTextDocument(e => console.log("Save event", e))
+		vscode.workspace.onDidSaveTextDocument(e => {
+			const notesLocation = Notes.getNotesLocation();
+
+			if (notesLocation !== undefined && e.fileName.startsWith(notesLocation)) {
+				console.log("Save note event", e);
+				labelsTree.refresh();
+			} else {
+				console.log("Save unrelated event", e);
+			}
+		})
 	);
 
 	/*
@@ -98,7 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// rename note
 	let renameNoteDisposable = vscode.commands.registerCommand('Notes.renameNote', (note: Note) => {
-		Notes.renameNote(note, notesTree);
+		Notes.renameNote(note, notesTree, labelsTree);
 	});
 	context.subscriptions.push(renameNoteDisposable);
 
@@ -152,6 +163,12 @@ export class Notes {
 
 	static getNotesExtensions(): string | undefined {
 		return vscode.workspace.getConfiguration('notes').get('notesExtensions');
+	}
+
+	static isNoteFilePath(filePath: string): boolean {
+		const notesExtensions = Notes.getNotesExtensions();
+
+		return notesExtensions === '*' || notesExtensions?.includes(path.extname(filePath)) === true;
 	}
 
 	// delete note
@@ -359,14 +376,11 @@ export class Notes {
 
 	static filterNotes(labelId: LabelId, notesTree: NotesViewProvider, labelsTree: LabelsViewProvider): void {
 		console.log("Filter by", labelId);
-		const noteFilePaths = labelsTree.getFilteredNotes(labelId);
-		console.log("noteFilePaths", noteFilePaths);
-		notesTree.filterFiles(noteFilePaths);
-		notesTree.refresh()
+		labelsTree.setSelectedLabel(labelId);
 	}
 
 	// rename note
-	static renameNote(note: Note, tree: NotesViewProvider): void {
+	static renameNote(note: Note, notesTree: NotesViewProvider, labelsTree: LabelsViewProvider): void {
 		// If it's a folder, don't try to rename it as a note
 		if (note.isFolder) {
 			return;
@@ -419,7 +433,8 @@ export class Notes {
 			fs.renameSync(path.join(note.location, note.name), newNotePath);
 
 			// refresh tree after renaming note
-			tree.refresh();
+			notesTree.refresh();
+			labelsTree.refresh();
 		});
 	}
 

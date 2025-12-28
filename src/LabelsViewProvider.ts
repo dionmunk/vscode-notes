@@ -3,8 +3,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import { isBinaryFileSync } from 'isbinaryfile';
-import LabelId, { ANY_LABEL_ID, NONE_LABEL_ID } from './LabelId';
+import LabelId, { ANY_LABEL_ID, NONE_LABEL_ID, NoteLabelId } from './LabelId';
 import Label, { AnyLabel, NoneLabel, NoteLabel } from './Label';
+import { NotesViewProvider } from './notesViewProvider';
 
 // TODO: Detect updates on notes updating the labels.
 // TODO: Edit labels updating all referencing files at once.
@@ -18,6 +19,8 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 	private labels: Label[] | undefined;
 
+	private selectedLabelId: LabelId | undefined;
+
 	private static IS_TAG_LINE_REGEX = /^#[^#\s]+(\s+#[^#\s]+)*$/;
 
 	private static TAG_GLUE_REGEX = /\s+#/;
@@ -26,7 +29,8 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 	constructor(
 		private notesLocation: string | undefined,
-		private notesExtensions: string | undefined) {
+		private notesExtensions: string | undefined,
+		private notesTree: NotesViewProvider) {
 	};
 
 	public init(): LabelsViewProvider {
@@ -35,29 +39,62 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 		return this;
 	}
 
-	/**
-	 * @return List of file paths.
-	 */
-	getFilteredNotes(labelId: LabelId): string[] | undefined {
-		if (labelId === ANY_LABEL_ID) {
-			return undefined;
-		} else if (labelId === NONE_LABEL_ID) {
-			const noneLabel = this.labels?.find(label => label instanceof NoneLabel);
-
-			return noneLabel?.usingFilePaths;
-		} else {
-			const label = this.labels
-				?.filter(label => label instanceof NoteLabel)
-				?.find(({ name: someName, ancestors: someAncestors }) => {
-					return someName === labelId.name && someAncestors === labelId.ancestors;
-				});
-
-			return label?.usingFilePaths ?? [];
-		}
+	refresh(): void {
+		this.labels = undefined;
+		this._onDidChangeTreeData.fire(undefined);
 	}
 
-	refresh(): void {
-		this._onDidChangeTreeData.fire(undefined);
+	setSelectedLabel(labelId: LabelId) {
+		this.selectedLabelId = labelId;
+
+		console.log("Set selected label refreshing filtered notes");
+		this.refreshFilteredNotes();
+	}
+
+	private refreshFilteredNotes() {
+		let filterFiles: string[] | undefined;
+
+		const selectedLabelId = this.selectedLabelId;
+		console.log("selectedLabelId", selectedLabelId);
+
+		if (selectedLabelId === undefined || selectedLabelId === ANY_LABEL_ID) {
+			filterFiles = undefined;
+		} else if (selectedLabelId === NONE_LABEL_ID) {
+			const noneLabel = this.labels?.find(label => label instanceof NoneLabel);
+
+			filterFiles = noneLabel?.usingFilePaths;
+		} else {
+			const label = this.findNoteLabelById(selectedLabelId, this.labels ?? []);
+			console.log("label", label);
+
+			if (label === undefined) {
+				console.log(`Label not found due to ${JSON.stringify(selectedLabelId)} not being used anymore. Clearing label filter.`);
+				this.selectedLabelId = undefined;
+				filterFiles = undefined;
+			} else {
+				filterFiles = label.usingFilePaths;
+			}
+		}
+
+		this.notesTree.filterFiles(filterFiles);
+	}
+
+	private findNoteLabelById(noteLabelId: NoteLabelId, labels: Label[]): NoteLabel | undefined {
+		const noteLabels = labels.filter(label => label instanceof NoteLabel);
+
+		for (const noteLabel of noteLabels) {
+			if (noteLabel.name === noteLabelId.name && noteLabel.ancestors === noteLabelId.ancestors) {
+				return noteLabel;
+			}
+
+			const matchingChild = this.findNoteLabelById(noteLabelId, noteLabel.children);
+
+			if (matchingChild !== undefined) {
+				return matchingChild;
+			}
+		}
+
+		return undefined;
 	}
 
 	getTreeItem(label: Label): vscode.TreeItem {
@@ -71,7 +108,10 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 		if (this.labels === undefined) {
 			this.labels = await this.getAllLabels();
-			console.log("this.labels", this.labels);
+			// console.log("this.labels", this.labels);
+
+			console.log("Refreshing filtered notes after re-getting all labels");
+			this.refreshFilteredNotes();
 		}
 
 		return this.labels ?? [];
@@ -83,7 +123,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 			return undefined;
 		} else {
 			const noteFilePaths = await this.readNotesInDir(this.notesLocation);
-			console.log("noteFilePaths", noteFilePaths);
+			// console.log("noteFilePaths", noteFilePaths);
 
 			const noteLabelEntryPromises = noteFilePaths.map(async noteFilePath => ([noteFilePath, await LabelsViewProvider.getRawLabels(noteFilePath)] as const));
 			const rawLabelsPerFile = Object.fromEntries(await Promise.all(noteLabelEntryPromises));
@@ -168,6 +208,11 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 		}
 
 		return (noneLabelFilePaths.length > 0 ? [new NoneLabel(noneLabelFilePaths)] : [] as Label[]).concat(immutabelizeLabels(mutableLabels));
+	}
+
+
+	isNoteFile(filePath: string): boolean {
+		return this.notesExtensions === '*' || this.notesExtensions?.includes(path.extname(filePath)) === true;
 	}
 
 	/**
