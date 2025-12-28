@@ -47,10 +47,8 @@ export function activate(context: vscode.ExtensionContext) {
 			const notesLocation = Notes.getNotesLocation();
 
 			if (notesLocation !== undefined && e.fileName.startsWith(notesLocation)) {
-				console.log("Save note event", e);
+				console.debug("Save event related to note:", e);
 				labelsTree.refresh();
-			} else {
-				console.log("Save unrelated event", e);
 			}
 		})
 	);
@@ -375,7 +373,7 @@ export class Notes {
 	}
 
 	static filterNotes(labelId: LabelId, notesTree: NotesViewProvider, labelsTree: LabelsViewProvider): void {
-		console.log("Filter by", labelId);
+		console.debug("Filter by:", labelId);
 		labelsTree.setSelectedLabel(labelId);
 	}
 

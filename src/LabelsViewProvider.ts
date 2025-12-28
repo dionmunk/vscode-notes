@@ -7,7 +7,6 @@ import LabelId, { ANY_LABEL_ID, NONE_LABEL_ID, NoteLabelId } from './LabelId';
 import Label, { AnyLabel, NoneLabel, NoteLabel } from './Label';
 import { NotesViewProvider } from './notesViewProvider';
 
-// TODO: Detect updates on notes updating the labels.
 // TODO: Edit labels updating all referencing files at once.
 // TODO: Optimization: Cache the labels index in a metadata file.
 // TODO: Add auto-complete to label input
@@ -47,7 +46,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 	setSelectedLabel(labelId: LabelId) {
 		this.selectedLabelId = labelId;
 
-		console.log("Set selected label refreshing filtered notes");
+		console.debug("Set selected label refreshing filtered notes");
 		this.refreshFilteredNotes();
 	}
 
@@ -55,7 +54,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 		let filterFiles: string[] | undefined;
 
 		const selectedLabelId = this.selectedLabelId;
-		console.log("selectedLabelId", selectedLabelId);
+		console.debug("selectedLabelId:", selectedLabelId);
 
 		if (selectedLabelId === undefined || selectedLabelId === ANY_LABEL_ID) {
 			filterFiles = undefined;
@@ -65,7 +64,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 			filterFiles = noneLabel?.usingFilePaths;
 		} else {
 			const label = this.findNoteLabelById(selectedLabelId, this.labels ?? []);
-			console.log("label", label);
+			console.debug("label:", label);
 
 			if (label === undefined) {
 				console.log(`Label not found due to ${JSON.stringify(selectedLabelId)} not being used anymore. Clearing label filter.`);
@@ -108,9 +107,9 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 		if (this.labels === undefined) {
 			this.labels = await this.getAllLabels();
-			// console.log("this.labels", this.labels);
+			console.debug("this.labels:", this.labels);
 
-			console.log("Refreshing filtered notes after re-getting all labels");
+			console.debug("Refreshing filtered notes after re-getting all labels");
 			this.refreshFilteredNotes();
 		}
 
@@ -123,7 +122,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 			return undefined;
 		} else {
 			const noteFilePaths = await this.readNotesInDir(this.notesLocation);
-			// console.log("noteFilePaths", noteFilePaths);
+			console.debug("noteFilePaths", noteFilePaths);
 
 			const noteLabelEntryPromises = noteFilePaths.map(async noteFilePath => ([noteFilePath, await LabelsViewProvider.getRawLabels(noteFilePath)] as const));
 			const rawLabelsPerFile = Object.fromEntries(await Promise.all(noteLabelEntryPromises));
@@ -141,20 +140,19 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 			input: fileStream,
 			crlfDelay: Infinity
 		});
-		let tagsHasStarted = false;
+		let tagsHaveStarted = false;
 		const rawLabels: string[] = [];
 
 		// Go through all lines until one starts with # and continue until these lines stop skipping empty lines.
 		for await (const line of rli) {
 			// Each line in input.txt will be successively available here as `line`.
-			// console.log(`Line from file: ${line}`);
 			const trimmedLine = line.trim();
 
 			if (trimmedLine.length > 0) {
 				if (LabelsViewProvider.IS_TAG_LINE_REGEX.test(trimmedLine)) {
 					rawLabels.push(...trimmedLine.substring(1).split(LabelsViewProvider.TAG_GLUE_REGEX));
-					tagsHasStarted = true;
-				} else if (tagsHasStarted) {
+					tagsHaveStarted = true;
+				} else if (tagsHaveStarted) {
 					break;
 				}
 			}
