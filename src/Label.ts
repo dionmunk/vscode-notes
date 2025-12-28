@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ANY_LABEL_ID, NONE_LABEL_ID } from './LabelId';
+import LabelId, { ANY_LABEL_ID, NONE_LABEL_ID } from './LabelId';
 
 export default abstract class Label extends vscode.TreeItem {
 	public abstract command: vscode.Command;
@@ -10,17 +10,22 @@ export default abstract class Label extends vscode.TreeItem {
 }
 
 export class NoteLabel extends Label {
+
+	public static TAG_GROUP_SEP = "/";
+
 	public readonly command: vscode.Command;
 
-	constructor(public readonly name: string, public readonly ancestors: string[], public readonly usingFilePaths: string[], public readonly children: Label[]) {
-		const label = (ancestors.length == 0 ? "#" : "") + name + " (" + usingFilePaths.length + ")";
+	public readonly id = this.ancestors.concat(this.name).join(NoteLabel.TAG_GROUP_SEP);
 
-		super(label, children.length > 0);
+	constructor(public readonly name: string, public readonly ancestors: string[], public readonly usingFilePaths: string[], public readonly children: Label[]) {
+		const itemLabel = (ancestors.length == 0 ? "#" : "") + name + " (" + usingFilePaths.length + ")";
+
+		super(itemLabel, children.length > 0);
 
 		this.command = {
 			command: 'Notes.filterNotes',
 			title: 'Show notes with this tag',
-			arguments: [{ name, ancestors }]
+			arguments: [ this.id ]
 		};
 	}
 }

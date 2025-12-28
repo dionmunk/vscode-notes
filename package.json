@@ -113,6 +113,14 @@
 				"title": "Settings",
 				"category": "Notes",
 				"icon": "$(gear)"
+			},
+			{
+				"command": "Notes.renameLabel",
+				"title": "Rename Label",
+				"icon": {
+					"light": "resources/light/rename.svg",
+					"dark": "resources/dark/rename.svg"
+				}
 			}
 		],
 		"keybindings": [
@@ -195,6 +203,11 @@
 					"command": "Notes.refreshNotes",
 					"when": "view == notes && !viewItem",
 					"group": "navigation@3"
+				},
+				{
+					"command": "Notes.renameLabel",
+					"when": "view == labels",
+					"group": "1_modification@3"
 				}
 			]
 		},

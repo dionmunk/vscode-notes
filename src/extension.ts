@@ -6,6 +6,7 @@ import { Note } from './note';
 import { LabelsViewProvider } from './LabelsViewProvider';
 import { NotesViewProvider } from './notesViewProvider';
 import LabelId from './LabelId';
+import { NoteLabel } from './Label';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
@@ -123,6 +124,12 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(setupNotesDisposable);
 
+	// rename label
+	context.subscriptions.push(
+		vscode.commands.registerCommand('Notes.renameLabel', (label: NoteLabel) => {
+			Notes.renameLabel(label, labelsTree);
+		})
+	);
 };
 
 // this method is called when extension is deactivated
@@ -509,6 +516,17 @@ export class Notes {
 				});
 			}
 		});
+	}
+
+	static async renameLabel(noteLabel: NoteLabel, labelsTree: LabelsViewProvider): Promise<void> {
+		const newLabelName = await vscode.window.showInputBox({
+			prompt: 'New label name?',
+			value: noteLabel.id
+		});
+
+		if (newLabelName !== undefined) {
+			labelsTree.renameLabel(noteLabel, newLabelName);
+		}
 	}
 
 	static confirmIsPathAccessible(p: string): boolean {

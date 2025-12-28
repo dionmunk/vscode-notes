@@ -24,8 +24,6 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 	private static TAG_GLUE_REGEX = /\s+#/;
 
-	private static TAG_GROUP_SEP = "/";
-
 	constructor(
 		private notesLocation: string | undefined,
 		private notesExtensions: string | undefined,
@@ -48,6 +46,46 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 		console.debug("Set selected label refreshing filtered notes");
 		this.refreshFilteredNotes();
+	}
+
+	async renameLabel(oldLabel: NoteLabel, newName: string) {
+		if (oldLabel.id === newName) {
+			return;
+		}
+
+		const updatedFiles: string[] = [];
+
+		for await (const usingFilePath of oldLabel.usingFilePaths) {
+			// TODO: Parse the file in the same way as detection went, so that we don't replace more than we should.
+			const detections = await LabelsViewProvider.detectRawLabels(usingFilePath);
+
+			const oldLabelUsingLineIndices = detections
+				.filter(({ rawLabels }) => rawLabels.includes(oldLabel.id))
+				.map(({ lineIndex }) => lineIndex)
+
+			if (oldLabelUsingLineIndices.length > 0) {
+				const content = await fs.promises.readFile(usingFilePath, "utf-8");
+				const lineEnding = LabelsViewProvider.detectLineEnding(content);
+				const lines = content.split(lineEnding);
+
+				for (const lineIndex of oldLabelUsingLineIndices) {
+					lines[lineIndex] = lines[lineIndex].replace(oldLabel.id, newName);
+				}
+
+				await fs.promises.writeFile(usingFilePath, lines.join(lineEnding), "utf-8");
+				updatedFiles.push(usingFilePath);
+			}
+
+			vscode.window.showInformationMessage(`Label '${oldLabel.id}' renamed to '${newName}'.`);
+
+		}
+
+		if (this.selectedLabelId === oldLabel.id) {
+			console.debug("Changing renamed selectedLabelId from", this.selectedLabelId, "to", newName);
+			this.selectedLabelId = oldLabel.id;
+		}
+
+		this.refresh();
 	}
 
 	private refreshFilteredNotes() {
@@ -82,7 +120,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 		const noteLabels = labels.filter(label => label instanceof NoteLabel);
 
 		for (const noteLabel of noteLabels) {
-			if (noteLabel.name === noteLabelId.name && noteLabel.ancestors === noteLabelId.ancestors) {
+			if (noteLabel.id === noteLabelId) {
 				return noteLabel;
 			}
 
@@ -132,6 +170,12 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 	}
 
 	private static async getRawLabels(filePath: string): Promise<string[]> {
+		const rawLabelDetection = await LabelsViewProvider.detectRawLabels(filePath);
+
+		return rawLabelDetection.flatMap(({ rawLabels }) => rawLabels);
+	}
+
+	private static async detectRawLabels(filePath: string): Promise<{ lineIndex: number, rawLabels: string[] }[]> {
 		const fileStream = fs.createReadStream(filePath);
 
 		// Note: we use the crlfDelay option to recognize all instances of CR LF
@@ -141,7 +185,8 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 			crlfDelay: Infinity
 		});
 		let tagsHaveStarted = false;
-		const rawLabels: string[] = [];
+		const result = [];
+		let lineIndex = 0;
 
 		// Go through all lines until one starts with # and continue until these lines stop skipping empty lines.
 		for await (const line of rli) {
@@ -150,15 +195,23 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 			if (trimmedLine.length > 0) {
 				if (LabelsViewProvider.IS_TAG_LINE_REGEX.test(trimmedLine)) {
-					rawLabels.push(...trimmedLine.substring(1).split(LabelsViewProvider.TAG_GLUE_REGEX));
+					result.push({ lineIndex, rawLabels: trimmedLine.substring(1).split(LabelsViewProvider.TAG_GLUE_REGEX) });
 					tagsHaveStarted = true;
 				} else if (tagsHaveStarted) {
 					break;
 				}
 			}
+
+			lineIndex++;
 		}
 
-		return rawLabels;
+		return result;
+	}
+
+	private static detectLineEnding(content: string) {
+		var lfIndex = content.indexOf('\n');
+
+		return content[lfIndex - 1] === '\r' ? '\r\n' : '\n';
 	}
 
 	private static toHierarchicalLabels(rawLabelsByFile: { [key: string]: string[] }): Label[] {
@@ -173,7 +226,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 				noneLabelFilePaths.push(filePath);
 			} else {
 				for (const rawLabel of rawLabels) {
-					const parts = rawLabel.split(LabelsViewProvider.TAG_GROUP_SEP);
+					const parts = rawLabel.split(NoteLabel.TAG_GROUP_SEP);
 					let parentLabel: MutableNoteLabel | undefined;
 
 					for (let partIndex = 0; partIndex < parts.length; partIndex++) {
