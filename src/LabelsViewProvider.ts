@@ -7,7 +7,6 @@ import LabelId, { ANY_LABEL_ID, NONE_LABEL_ID, NoteLabelId } from './LabelId';
 import Label, { AnyLabel, NoneLabel, NoteLabel } from './Label';
 import { NotesViewProvider } from './notesViewProvider';
 
-// TODO: Edit labels updating all referencing files at once.
 // TODO: Optimization: Cache the labels index in a metadata file.
 // TODO: Add auto-complete to label input
 export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
@@ -87,7 +86,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 		if (this.selectedLabelId === oldLabel.id) {
 			console.debug("Changing renamed selectedLabelId from", this.selectedLabelId, "to", trimmedNewName);
-			this.selectedLabelId = oldLabel.id;
+			this.selectedLabelId = trimmedNewName;
 		}
 
 		this.refresh();
