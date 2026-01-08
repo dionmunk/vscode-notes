@@ -53,10 +53,16 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 			return;
 		}
 
+		const trimmedNewName = newName.trim();
+
+		if (/\s/.test(trimmedNewName)) {
+			vscode.window.showWarningMessage(`Label name '${trimmedNewName}' cannot contain space characters.`);
+		}
+
 		const updatedFiles: string[] = [];
 
 		for await (const usingFilePath of oldLabel.usingFilePaths) {
-			// TODO: Parse the file in the same way as detection went, so that we don't replace more than we should.
+			// Parse the file in the same way as detection went, so that we don't replace more than we should.
 			const detections = await LabelsViewProvider.detectRawLabels(usingFilePath);
 
 			const oldLabelUsingLineIndices = detections
@@ -69,19 +75,18 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 				const lines = content.split(lineEnding);
 
 				for (const lineIndex of oldLabelUsingLineIndices) {
-					lines[lineIndex] = lines[lineIndex].replace(oldLabel.id, newName);
+					lines[lineIndex] = lines[lineIndex].replace(oldLabel.id, trimmedNewName);
 				}
 
 				await fs.promises.writeFile(usingFilePath, lines.join(lineEnding), "utf-8");
 				updatedFiles.push(usingFilePath);
 			}
 
-			vscode.window.showInformationMessage(`Label '${oldLabel.id}' renamed to '${newName}'.`);
-
+			vscode.window.showInformationMessage(`Label '${oldLabel.id}' renamed to '${trimmedNewName}'.`);
 		}
 
 		if (this.selectedLabelId === oldLabel.id) {
-			console.debug("Changing renamed selectedLabelId from", this.selectedLabelId, "to", newName);
+			console.debug("Changing renamed selectedLabelId from", this.selectedLabelId, "to", trimmedNewName);
 			this.selectedLabelId = oldLabel.id;
 		}
 
