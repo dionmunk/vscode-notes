@@ -149,7 +149,7 @@ export class LabelsViewProvider implements vscode.TreeDataProvider<Label> {
 
 		if (this.labels === undefined) {
 			this.labels = await this.getAllLabels();
-			console.debug("this.labels:", this.labels);
+			// console.debug("this.labels", this.labels);
 
 			console.debug("Refreshing filtered notes after re-getting all labels");
 			this.refreshFilteredNotes();

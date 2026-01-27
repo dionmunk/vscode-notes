@@ -36,4 +36,8 @@ export class Note extends vscode.TreeItem {
 	}
 
 	tooltip = this.name;
+
+	dir(): string {
+		return this.isDirectory ? this.location : this.location.substring(0, this.location.lastIndexOf(path.sep));
+	}
 }
