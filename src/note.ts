@@ -14,6 +14,7 @@ export class Note extends vscode.TreeItem {
 		public readonly command?: vscode.Command
 	) {
 		super(name, isDirectory ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
+
 		this.name = name;
 		this.location = location;
 		this.category = category;
@@ -35,4 +36,8 @@ export class Note extends vscode.TreeItem {
 	}
 
 	tooltip = this.name;
+
+	dir(): string {
+		return this.isDirectory ? this.location : this.location.substring(0, this.location.lastIndexOf(path.sep));
+	}
 }
