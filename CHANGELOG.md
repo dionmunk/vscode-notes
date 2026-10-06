@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* `Notes: Select Storage Location` command
+* the storage location can start with `~` for your home folder, or be relative to the workspace folder
+
+### Changed
+
+* a new storage location or list of extensions is used right away, a window reload is no longer required
+* the Notes view explains why it is empty: no storage location, a storage location that can't be found, or no notes yet
+
+### Fixed
+
+* the Notes view kept asking for a storage location after one was set (#69, #71)
+* a storage location selected while the workspace settings had one was saved but never used
+* new notes and folders were created in the extension's working folder when no storage location was set
+* the Notes view is refreshed after a note or folder has been created, instead of before
+
 ## [2.0.0] - 2025-03-26
 
 ### Added

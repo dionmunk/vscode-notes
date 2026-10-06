@@ -3,12 +3,14 @@ import * as fs from 'fs';
 import * as gl from 'glob';
 import * as path from 'path';
 import { Note } from './note';
+import { LocationState, getLocationState } from './location';
 
 export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<Note | undefined> = new vscode.EventEmitter<Note | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Note | undefined> = this._onDidChangeTreeData.event;
     private folderMap: Map<string, Note[]> = new Map<string, Note[]>();
+    private locationState: LocationState | undefined;
 
     // constructor for NotesViewProvider
     constructor(
@@ -27,6 +29,21 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
         this._onDidChangeTreeData.fire(undefined);
     }
 
+    // use a new storage location or list of extensions without reloading the window
+    update(notesLocation: string, notesExtensions: string): void {
+        this.notesLocation = notesLocation;
+        this.notesExtensions = notesExtensions;
+        this.refresh();
+    }
+
+    // set the 'notes.locationState' context key, which picks the welcome content shown in an empty view
+    private setLocationState(state: LocationState): void {
+        if (state !== this.locationState) {
+            this.locationState = state;
+            vscode.commands.executeCommand('setContext', 'notes.locationState', state);
+        }
+    }
+
     // get the parent of a note
     getTreeItem(note: Note): vscode.TreeItem {
         return note;
@@ -34,8 +51,10 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
 
     // get the children of a note
     getChildren(note?: Note): Thenable<Note[]> {
-        // if there is no notes location return an empty list
-        if (!this.notesLocation) {
+        // if there is no usable notes location return an empty list
+        const state = getLocationState(this.notesLocation);
+        if (state !== 'ready') {
+            this.setLocationState(state);
             return Promise.resolve([]);
         }
 
@@ -50,7 +69,9 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
         }
         // else return the list of notes at the root level
         else {
-            return Promise.resolve(this.getNotes(this.notesLocation, this.notesExtensions));
+            const notes = this.getNotes(this.notesLocation, this.notesExtensions);
+            this.setLocationState(notes.length ? 'ready' : 'empty');
+            return Promise.resolve(notes);
         }
     }
 
