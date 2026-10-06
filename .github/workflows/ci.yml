@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # production bundle, the same build that vscode:prepublish runs when packaging
+      - run: npm run vscode:prepublish
+      # TODO: add `npm run compile` and `npm run lint` once tsconfig.json and
+      # .eslintrc.json are fixed (both currently fail on master)
