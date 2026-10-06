@@ -258,12 +258,12 @@
 		"@types/vscode": "^1.87.0",
 		"@typescript-eslint/eslint-plugin": "^7.0.0",
 		"@typescript-eslint/parser": "^7.0.0",
+		"@vscode/test-electron": "^3.1.0",
 		"eslint": "^8.56.0",
 		"glob": "^10.5.0",
 		"mocha": "^10.2.0",
 		"ts-loader": "^9.5.1",
 		"typescript": "^5.3.3",
-		"vscode-test": "^1.6.1",
 		"webpack": "^5.89.0",
 		"webpack-cli": "^5.1.4"
 	},
