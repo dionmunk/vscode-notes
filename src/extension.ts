@@ -1,9 +1,10 @@
-// figure out how to reload treeview when notes location changes
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
+import { getLocationState, resolveNotesLocation } from './location';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
@@ -14,27 +15,24 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log('"vscode-notes" is active.');
 
 	// get Notes configuration
-	let notesTree = new NotesViewProvider(String(Notes.getNotesLocation()), String(Notes.getNotesExtensions()));
+	let notesTree = new NotesViewProvider(Notes.getNotesLocation(), String(Notes.getNotesExtensions()));
 	vscode.window.registerTreeDataProvider('notes', notesTree.init());
+
+	// update the tree with the current storage location and extensions
+	const updateTree = () => notesTree.update(Notes.getNotesLocation(), String(Notes.getNotesExtensions()));
 
 	// Listen for configuration changes
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration(e => {
-			// Check if notes.notesLocation setting changed
-			if (e.affectsConfiguration('notes.notesLocation')) {
-				// Prompt to reload window so storage location change can take effect
-				vscode.window.showWarningMessage(
-					`The Notes extension detected a change in the storage location. You must reload the window for the change to take effect.`,
-					'Reload'
-				).then(selectedAction => {
-					// if the user selected to reload the window then reload
-					if (selectedAction === 'Reload') {
-						vscode.commands.executeCommand('workbench.action.reloadWindow');
-					}
-				});
+			// apply a new storage location or list of extensions right away
+			if (e.affectsConfiguration('notes.notesLocation') || e.affectsConfiguration('notes.notesExtensions')) {
+				updateTree();
 			}
 		})
 	);
+
+	// a relative storage location depends on the workspace folder
+	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateTree));
 
 	/*
 	* register commands
@@ -100,6 +98,12 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(setupNotesDisposable);
 
+	// select storage location
+	let selectLocationDisposable = vscode.commands.registerCommand('Notes.selectLocation', () => {
+		Notes.selectLocation();
+	});
+	context.subscriptions.push(selectLocationDisposable);
+
 };
 
 // this method is called when extension is deactivated
@@ -118,9 +122,29 @@ export class Notes {
 		this.settings = vscode.workspace.getConfiguration(extId);
 	}
 
-	// get notes storage location
-	static getNotesLocation() {
-		return vscode.workspace.getConfiguration('notes').get('notesLocation');
+	// get notes storage location, with ~ and a path relative to the workspace folder resolved
+	static getNotesLocation(): string {
+		const notesLocation = vscode.workspace.getConfiguration('notes').get<string>('notesLocation');
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+		return resolveNotesLocation(notesLocation, os.homedir(), workspaceFolder);
+	}
+
+	// get the notes storage location if it is a usable folder, otherwise tell the user and return undefined
+	static requireNotesLocation(): string | undefined {
+		const notesLocation = Notes.getNotesLocation();
+		if (getLocationState(notesLocation) === 'ready') {
+			return notesLocation;
+		}
+
+		const message = notesLocation
+			? `The notes storage location could not be found: ${notesLocation}`
+			: 'You need to select a location to store your notes.';
+		vscode.window.showErrorMessage(message, 'Select Location').then(selectedAction => {
+			if (selectedAction === 'Select Location') {
+				Notes.selectLocation();
+			}
+		});
+		return undefined;
 	}
 	// get notes default extension
 	static getNotesDefaultNoteExtension() {
@@ -190,7 +214,10 @@ export class Notes {
 
 	// list notes
 	static listNotes(): void {
-		let notesLocation = String(Notes.getNotesLocation());
+		const notesLocation = Notes.requireNotesLocation();
+		if (!notesLocation) {
+			return;
+		}
 		let notesExtensions = String(Notes.getNotesExtensions());
 		// read files in storage location
 		fs.readdir(String(notesLocation), (err, files) => {
@@ -212,7 +239,10 @@ export class Notes {
 	// new note
 	static newNote(tree: NotesViewProvider, folder?: Note): void {
 		// Determine the location where the note should be created
-		let notesLocation = folder ? path.join(folder.location, folder.name) : String(Notes.getNotesLocation());
+		const notesLocation = folder ? path.join(folder.location, folder.name) : Notes.requireNotesLocation();
+		if (!notesLocation) {
+			return;
+		}
 		let notesDefaultNoteExtension = String(Notes.getNotesDefaultNoteExtension());
 
 		// prompt user for a new note name
@@ -243,6 +273,8 @@ export class Notes {
 						return vscode.window.showErrorMessage('Failed to create the new note.');
 					}
 					else {
+						// refresh tree after creating new note
+						tree.refresh();
 						// open file
 						let file = vscode.Uri.file(filePath);
 						vscode.window.showTextDocument(file).then(() => {
@@ -251,8 +283,6 @@ export class Notes {
 						});
 					}
 				});
-				// refresh tree after creating new note
-				tree.refresh();
 			}
 			else {
 				// report
@@ -264,7 +294,10 @@ export class Notes {
 	// new folder
 	static newFolder(tree: NotesViewProvider, parentFolder?: Note): void {
 		// Determine the location where the folder should be created
-		let parentLocation = parentFolder ? path.join(parentFolder.location, parentFolder.name) : String(Notes.getNotesLocation());
+		const parentLocation = parentFolder ? path.join(parentFolder.location, parentFolder.name) : Notes.requireNotesLocation();
+		if (!parentLocation) {
+			return;
+		}
 
 		// prompt user for a new folder name
 		vscode.window.showInputBox({
@@ -291,11 +324,11 @@ export class Notes {
 						return vscode.window.showErrorMessage('Failed to create the new folder.');
 					}
 					else {
+						// refresh tree after creating new folder
+						tree.refresh();
 						vscode.window.showInformationMessage(`Successfully created folder ${folderName}.`);
 					}
 				});
-				// refresh tree after creating new folder
-				tree.refresh();
 			}
 			else {
 				// report
@@ -438,11 +471,19 @@ export class Notes {
 		}
 
 		// If notesLocation is null, show dialog to select a folder
+		Notes.selectLocation();
+	}
+
+	// select a folder to store notes in
+	static selectLocation(): void {
+		const notesLocation = Notes.getNotesLocation();
 		let openDialogOptions: vscode.OpenDialogOptions = {
 			canSelectFiles: false,
 			canSelectFolders: true,
 			canSelectMany: false,
-			openLabel: 'Select'
+			openLabel: 'Select',
+			// start in the current location if it exists
+			defaultUri: getLocationState(notesLocation) === 'ready' ? vscode.Uri.file(notesLocation) : undefined
 		};
 
 		// display open dialog with above options
@@ -450,18 +491,16 @@ export class Notes {
 			if (fileUri && fileUri[0]) {
 				// get Notes configuration
 				let notesConfiguration = vscode.workspace.getConfiguration('notes');
-				// update Notes configuration with selected location
-				notesConfiguration.update('notesLocation', path.normalize(fileUri[0].fsPath), true).then(() => {
-					// prompt to reload window so storage location change can take effect
-					vscode.window.showWarningMessage(
-						`The Notes extension detected a change in the storage location. You must reload the window for the change to take effect.`,
-						'Reload'
-					).then(selectedAction => {
-						// if the user selected to reload the window then reload
-						if (selectedAction === 'Reload') {
-							vscode.commands.executeCommand('workbench.action.reloadWindow');
-						}
-					});
+				// a location set in the workspace settings overrides the user settings, so update it there
+				// otherwise the selected location would be saved but never used
+				const inspected = notesConfiguration.inspect<string>('notesLocation');
+				const target = inspected?.workspaceValue !== undefined
+					? vscode.ConfigurationTarget.Workspace
+					: vscode.ConfigurationTarget.Global;
+				// update Notes configuration with selected location, the tree picks up the change on its own
+				notesConfiguration.update('notesLocation', path.normalize(fileUri[0].fsPath), target).then(undefined, err => {
+					console.error(err);
+					vscode.window.showErrorMessage('Failed to save the notes storage location.');
 				});
 			}
 		});

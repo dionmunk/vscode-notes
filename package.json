@@ -38,7 +38,7 @@
 				"notes.notesLocation": {
 					"type": "string",
 					"default": "",
-					"description": "Storage location for notes."
+					"description": "Storage location for notes. A path starting with `~` is in your home folder, and a relative path is relative to the first workspace folder."
 				},
 				"notes.notesDefaultNoteExtension": {
 					"type": "string",
@@ -113,6 +113,11 @@
 				"title": "Settings",
 				"category": "Notes",
 				"icon": "$(gear)"
+			},
+			{
+				"command": "Notes.selectLocation",
+				"title": "Select Storage Location",
+				"category": "Notes"
 			}
 		],
 		"keybindings": [
@@ -218,7 +223,18 @@
 		"viewsWelcome": [
 			{
 				"view": "notes",
-				"contents": "To get started, you need to select a location to store your notes.\n[Select Location](command:Notes.setupNotes)"
+				"contents": "To get started, you need to select a location to store your notes.\n[Select Location](command:Notes.selectLocation)",
+				"when": "notes.locationState == unset || !notes.locationState && !config.notes.notesLocation"
+			},
+			{
+				"view": "notes",
+				"contents": "The notes storage location could not be found. Check the Storage Location setting, or select another folder.\n[Select Location](command:Notes.selectLocation)\n[Open Settings](command:Notes.setupNotes)",
+				"when": "notes.locationState == missing"
+			},
+			{
+				"view": "notes",
+				"contents": "You don't have any notes yet.\n[New Note](command:Notes.newNote)\n[New Folder](command:Notes.newFolder)",
+				"when": "notes.locationState == empty"
 			}
 		]
 	},
