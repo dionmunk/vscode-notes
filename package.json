@@ -49,6 +49,18 @@
 					"type": "string",
 					"default": "*",
 					"description": "A comma separated list of allowed extensions for notes. Use '*' (asterisk) to allow all file types. (do not include the dot or spaces)"
+				},
+				"notes.watchExternalChanges": {
+					"type": "boolean",
+					"default": true,
+					"description": "Update the Notes view when notes are added, renamed or removed outside of this window, by a sync client or another editor for example."
+				},
+				"notes.watchIntervalSeconds": {
+					"type": "number",
+					"default": 5,
+					"minimum": 2,
+					"maximum": 60,
+					"description": "How often, in seconds, the open folders are checked for changes made outside of this window while the Notes view is visible. File system events are used as well, but a synced folder, or a Windows folder seen from WSL, may never send any."
 				}
 			}
 		},
@@ -109,6 +121,11 @@
 				}
 			},
 			{
+				"command": "Notes.revealInOS",
+				"title": "Reveal in File Explorer",
+				"category": "Notes"
+			},
+			{
 				"command": "Notes.setupNotes",
 				"title": "Settings",
 				"category": "Notes",
@@ -153,6 +170,11 @@
 					"command": "Notes.setupNotes",
 					"when": "view == notes",
 					"group": "navigation@4"
+				},
+				{
+					"command": "Notes.revealInOS",
+					"when": "view == notes && (!remoteName || remoteName == wsl)",
+					"group": "1_open@1"
 				}
 			],
 			"view/item/context": [
@@ -200,6 +222,22 @@
 					"command": "Notes.refreshNotes",
 					"when": "view == notes && !viewItem",
 					"group": "navigation@3"
+				},
+				{
+					"command": "Notes.revealInOS",
+					"when": "view == notes && viewItem == note && (!remoteName || remoteName == wsl)",
+					"group": "3_open@1"
+				},
+				{
+					"command": "Notes.revealInOS",
+					"when": "view == notes && viewItem == folder && (!remoteName || remoteName == wsl)",
+					"group": "3_open@1"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "Notes.revealInOS",
+					"when": "(!remoteName || remoteName == wsl)"
 				}
 			]
 		},
