@@ -10,19 +10,19 @@ Notes is a Markdown focused notes extension for Visual Studio Code that takes in
 
 ## Features
 
-Notes are stored in a single location (directory) located anywhere on your system you'd like. This allows you to store notes locally or inside a cloud service like Dropbox, iCloud Drive, Google Drive, OneDrive, etc. Notes are written in Markdown and are stored as **.md** by default, but you can change this to whatever you want. It's recommended to name your notes with a file extension, like **.md**, or VS Code won't know how to render your note correctly.
+Notes are stored in a folder anywhere on your system you'd like, with as many subfolders as you want, and each project can also keep its own [Workspace Notes](#workspace-notes). This allows you to store notes locally or inside a cloud service like Dropbox, iCloud Drive, Google Drive, OneDrive, etc., and notes added or changed outside of VS Code show up on their own. Notes are written in Markdown and are stored as **.md** by default, but you can change this to whatever you want, or type an extension with the name of a new note, like `query.sql`.
 
-The extension can be accessed using the Notes icon that is placed in the Activity Bar, or in the Command Pallet (CMD+Shift+P or CTRL+Shift+P) by typing `Notes`.
+The extension can be accessed using the Notes icon that is placed in the Activity Bar, or in the Command Palette (CMD+Shift+P or CTRL+Shift+P) by typing `Notes`.
 
-* quickly create new notes by using the `Alt+N` shortcut, or by click on the `+` icon at the top when you are in Notes.
+* quickly create new notes by using the `Alt+N` shortcut, or by clicking the New Note icon at the top of Notes.
 * quickly access your list of notes by using the `Alt+L` shortcut to bring up a searchable list at the top of VSCode, including the notes in folders. If what you type isn't a note, press `Enter` to create it.
 * search inside your notes with **Notes: Search Notes**, the search button at the top of each section, or **Search in Folder** in the right-click menu of a folder. It opens VS Code's Search view limited to your notes, wherever they are stored.
-* hovering over a note inside Notes displays two icons, one allows you to rename a note and the other allows you to delete a note. *Deleting a note is permanent, so be careful.*
+* right-click a note or folder to rename, delete, move or search it, or to reveal it in your file explorer. *Deleting a note is permanent, so be careful.*
 * move notes and folders by dragging them onto a folder (or onto empty space for the top level), between Workspace Notes and Notes, or with **Move To...** in the right-click menu. Select several with `Cmd`/`Ctrl` to move them together, and drag a note onto the editor to open it.
 
 ## Getting Started
 
-Notes will prompt you for a storage location the first time you access the extension from the Activity Bar or through the Command Pallet. If you would like to change the storage location, later on, you can access the Notes extension settings by clicking on the gear icon in Notes or from the Command Pallet. After you've selected a storage location, you can access your notes from the Notes icon in the Activity Bar, or through the Command Pallet.
+Notes will prompt you for a storage location the first time you access the extension from the Activity Bar or through the Command Palette. If you would like to change the storage location, later on, you can access the Notes extension settings by clicking on the gear icon in Notes or from the Command Palette. After you've selected a storage location, you can access your notes from the Notes icon in the Activity Bar, or through the Command Palette.
 
 ## Workspace Notes
 
@@ -40,18 +40,17 @@ A multi-root workspace uses the first folder for relative locations.
 
 This extension contributes the following settings:
 
-* `Notes.notesLocation`: location of the notes in the Notes section, set in your user settings and not synced between machines. In a [portable](https://code.visualstudio.com/docs/editor/portable) VS Code, a relative path is relative to the folder holding VS Code, so the notes can travel with it (for example `data/Notes` on Windows and Linux)
-* `Notes.workspaceNotesLocation`: location of the notes in the Workspace Notes section, relative to the workspace folder or a full path
-* `Notes.notesDefaultNotesExtension`: extension used for new notes
-* `Notes.notesExtensions`: list of extensions recognized as notes or '*' for all extensions
-* `Notes.watchExternalChanges`: update the Notes view when notes are added, renamed or removed outside of VS Code
-* `Notes.watchIntervalSeconds`: how often the open folders are checked for those changes while the Notes view is visible
+* `notes.notesLocation`: location of the notes in the Notes section, set in your user settings and not synced between machines. In a [portable](https://code.visualstudio.com/docs/editor/portable) VS Code, a relative path is relative to the folder holding VS Code, so the notes can travel with it (for example `data/Notes` on Windows and Linux)
+* `notes.workspaceNotesLocation`: location of the notes in the Workspace Notes section, relative to the workspace folder or a full path
+* `notes.notesDefaultNoteExtension`: extension used for new notes that don't have one in their name
+* `notes.notesExtensions`: list of extensions recognized as notes or '*' for all extensions
+* `notes.watchExternalChanges`: update the Notes view when notes are added, renamed or removed outside of VS Code
+* `notes.watchIntervalSeconds`: how often the open folders are checked for those changes while the Notes view is visible
 
 ## Future Plans
 
 * custom Notes editor with shortcuts for common Markdown functions (bold, italic, link, code block, etc.)
 * option to have an automatic Markdown preview pop up when you start editing a note
-* search notes in the Notes view using note name and contents
 * allow for front matter in Notes like tags and categories (with possible tree structure based on tags and categories)
 * allow for multiple Notes' storage locations and make them switchable
 
