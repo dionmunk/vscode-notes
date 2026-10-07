@@ -98,3 +98,9 @@ export function splitNoteName(name: string, allowedExtensions: string, languageE
 	const usable = allowed.includes('*') ? languageExtensions.has(extension.toLowerCase()) : allowed.includes(extension.toLowerCase());
 	return usable ? { base: name.slice(0, -dotted.length), extension } : { base: name };
 }
+
+// does a typed name refer to a note, by its file name or by its name without the extension?
+export function isNoteName(typed: string, fileName: string): boolean {
+	const name = typed.trim().toLowerCase();
+	return name === fileName.toLowerCase() || name === path.parse(fileName).name.toLowerCase();
+}

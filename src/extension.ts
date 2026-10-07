@@ -7,7 +7,7 @@ import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
 import { MovableItem, NotesDragAndDrop } from './notesDragAndDrop';
-import { getLocationState, getMoveDestination, getPortableFolder, isInside, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from './location';
+import { getLocationState, getMoveDestination, getPortableFolder, isInside, isNoteName, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from './location';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
@@ -122,7 +122,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// list notes
 	let listNotesDisposable = vscode.commands.registerCommand('Notes.listNotes', () => {
-		Notes.listNotes();
+		Notes.listNotes(trees);
 	});
 	context.subscriptions.push(listNotesDisposable);
 
@@ -453,8 +453,9 @@ export class Notes {
 		});
 	}
 
-	// list notes, from Workspace Notes and Notes
-	static async listNotes(): Promise<void> {
+	// list notes, from Workspace Notes and Notes and the folders in them; typing a name that isn't a note
+	// offers to create it, so Enter creates the note when nothing matches (#34)
+	static async listNotes(tree: Refreshable): Promise<void> {
 		const sources = [{ label: 'Notes', location: Notes.getNotesLocation() }];
 		if (Notes.isWorkspaceNotesAvailable()) {
 			sources.unshift({ label: 'Workspace Notes', location: Notes.getWorkspaceNotesLocation() });
@@ -465,31 +466,45 @@ export class Notes {
 			return;
 		}
 
-		// read the notes in each storage location, the label tells them apart when there are two
-		const items: (vscode.QuickPickItem & { filePath: string })[] = [];
+		type NoteItem = vscode.QuickPickItem & { filePath?: string, createIn?: string };
+		const notes: NoteItem[] = [];
 		for (const source of ready) {
-			try {
-				for (const entry of await fs.promises.readdir(source.location, { withFileTypes: true })) {
-					if (entry.isFile() && !entry.name.startsWith('.')) {
-						items.push({
-							label: entry.name,
-							description: ready.length > 1 ? source.label : undefined,
-							filePath: path.join(source.location, entry.name)
-						});
-					}
-				}
-			} catch (err) {
-				// report error
-				console.error(err);
-				vscode.window.showErrorMessage(`Failed to read ${source.location}.`);
+			for (const filePath of await listNoteFiles(source.location, String(Notes.getNotesExtensions()))) {
+				// where the note is: its section when there are two, and its folder
+				const folder = path.relative(source.location, path.dirname(filePath)).split(path.sep).join('/');
+				const where = [ready.length > 1 ? source.label : '', folder].filter(Boolean).join(' › ');
+				notes.push({ label: path.basename(filePath), description: where || undefined, filePath });
 			}
 		}
 
-		// show list of notes and open the selected one
-		const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Open a note' });
-		if (picked) {
-			vscode.window.showTextDocument(vscode.Uri.file(picked.filePath));
-		}
+		const quickPick = vscode.window.createQuickPick<NoteItem>();
+		quickPick.placeholder = 'Open a note, or type a name to create one';
+		quickPick.matchOnDescription = true;
+		quickPick.items = notes;
+		quickPick.onDidChangeValue(value => {
+			const name = value.trim();
+			// offer to create the typed name in each section, unless a note already has that name
+			const create: NoteItem[] = !name || notes.some(note => isNoteName(name, note.label)) ? [] : ready.map(source => ({
+				label: `$(new-file) Create '${name}'`,
+				description: ready.length > 1 ? `in ${source.label}` : undefined,
+				alwaysShow: true,
+				createIn: source.location
+			}));
+			quickPick.items = [...notes, ...create];
+		});
+		quickPick.onDidAccept(async () => {
+			const picked = quickPick.activeItems[0];
+			const name = quickPick.value.trim();
+			quickPick.hide();
+			if (picked?.filePath) {
+				vscode.window.showTextDocument(vscode.Uri.file(picked.filePath));
+			}
+			else if (picked?.createIn && name) {
+				await Notes.createNote(picked.createIn, name, tree);
+			}
+		});
+		quickPick.onDidHide(() => quickPick.dispose());
+		quickPick.show();
 	}
 
 	// new note
@@ -499,55 +514,47 @@ export class Notes {
 		if (!notesLocation) {
 			return;
 		}
-		let notesDefaultNoteExtension = String(Notes.getNotesDefaultNoteExtension());
-
 		// prompt user for a new note name
-		vscode.window.showInputBox({
+		const noteName = await vscode.window.showInputBox({
 			prompt: 'Note name?',
 			value: '',
-		}).then(noteName => {
-			if (!noteName) {
-				return; // User cancelled
-			}
-
-			// keep an extension typed with the name, like query.sql, otherwise use the default one
-			const languages = Notes.getLanguageExtensions();
-			const { base, extension } = splitNoteName(noteName, String(Notes.getNotesExtensions()), new Set(languages.keys()));
-			const noteExtension = extension ?? notesDefaultNoteExtension;
-			// set note path
-			let filePath: string = path.join(notesLocation, `${base.replace(/\:/gi, '')}.${noteExtension}`);
-			// a Markdown note starts with its name as a heading, other files start empty
-			const markdown = languages.get(noteExtension.toLowerCase()) === 'markdown' || ['md', 'markdown'].includes(noteExtension.toLowerCase());
-			let firstLine: string = markdown ? `# ${base}\n\n` : '';
-			// does note exist already?
-			let noteExists = fs.existsSync(String(filePath));
-
-			// if a note with name doesn't already exist
-			if (!noteExists) {
-				// try writing the file to the storage location
-				fs.writeFile(filePath, firstLine, err => {
-					if (err) {
-						// report error
-						console.error(err);
-						return vscode.window.showErrorMessage('Failed to create the new note.');
-					}
-					else {
-						// refresh tree after creating new note
-						tree.refresh();
-						// open file
-						let file = vscode.Uri.file(filePath);
-						vscode.window.showTextDocument(file).then(() => {
-							// go to last line in new file
-							vscode.commands.executeCommand('cursorMove', { 'to': 'viewPortBottom' });
-						});
-					}
-				});
-			}
-			else {
-				// report
-				return vscode.window.showWarningMessage('A note with that name already exists.');
-			}
 		});
+		if (noteName) {
+			await Notes.createNote(notesLocation, noteName, tree);
+		}
+	}
+
+	// create a note in a folder and open it, keeping an extension typed with the name, like query.sql,
+	// otherwise using the default one
+	static async createNote(folder: string, noteName: string, tree: Refreshable): Promise<void> {
+		const languages = Notes.getLanguageExtensions();
+		const { base, extension } = splitNoteName(noteName, String(Notes.getNotesExtensions()), new Set(languages.keys()));
+		const noteExtension = extension ?? String(Notes.getNotesDefaultNoteExtension());
+		// set note path
+		const filePath = path.join(folder, `${base.replace(/\:/gi, '')}.${noteExtension}`);
+		// a Markdown note starts with its name as a heading, other files start empty
+		const markdown = languages.get(noteExtension.toLowerCase()) === 'markdown' || ['md', 'markdown'].includes(noteExtension.toLowerCase());
+		const firstLine = markdown ? `# ${base}\n\n` : '';
+
+		// if a note with name already exists
+		if (fs.existsSync(filePath)) {
+			vscode.window.showWarningMessage('A note with that name already exists.');
+			return;
+		}
+		try {
+			// write the file to the storage location
+			await fs.promises.writeFile(filePath, firstLine, { flag: 'wx' });
+		} catch (err) {
+			// report error
+			console.error(err);
+			vscode.window.showErrorMessage('Failed to create the new note.');
+			return;
+		}
+		// refresh tree after creating new note
+		tree.refresh();
+		// open file and go to last line in new file
+		await vscode.window.showTextDocument(vscode.Uri.file(filePath));
+		vscode.commands.executeCommand('cursorMove', { 'to': 'viewPortBottom' });
 	}
 
 	// new folder
@@ -968,4 +975,27 @@ async function listFolders(folder: string): Promise<string[]> {
 		folders.push(child, ...await listFolders(child));
 	}
 	return folders;
+}
+
+// every note below a folder, in its folders too, leaving out hidden files and folders and, like the tree,
+// files whose extension isn't allowed
+async function listNoteFiles(folder: string, notesExtensions: string): Promise<string[]> {
+	const allowed = notesExtensions.split(',').map(extension => extension.trim().toLowerCase());
+	let entries: fs.Dirent[];
+	try {
+		entries = await fs.promises.readdir(folder, { withFileTypes: true });
+	} catch (err) {
+		return [];
+	}
+	const files: string[] = [];
+	for (const entry of entries.filter(entry => !entry.name.startsWith('.')).sort((a, b) => a.name.localeCompare(b.name))) {
+		const entryPath = path.join(folder, entry.name);
+		if (entry.isDirectory()) {
+			files.push(...await listNoteFiles(entryPath, notesExtensions));
+		}
+		else if (entry.isFile() && (allowed.includes('*') || allowed.includes(path.extname(entry.name).slice(1).toLowerCase()))) {
+			files.push(entryPath);
+		}
+	}
+	return files;
 }

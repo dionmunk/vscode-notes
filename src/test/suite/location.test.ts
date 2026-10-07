@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { getLocationState, getMoveDestination, getPortableFolder, isInside, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from '../../location';
+import { getLocationState, getMoveDestination, getPortableFolder, isInside, isNoteName, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from '../../location';
 
 suite('Notes Location', () => {
 	const home = path.join(path.sep, 'home', 'someone');
@@ -136,5 +136,13 @@ suite('Notes Location', () => {
 	test('with a list of allowed extensions only those count', () => {
 		assert.deepStrictEqual(splitNoteName('notes.txt', 'md, txt', languages), { base: 'notes', extension: 'txt' });
 		assert.deepStrictEqual(splitNoteName('query.sql', 'md,txt', languages), { base: 'query.sql' });
+	});
+
+	test('a typed name refers to a note by its file name or its name without the extension (#34)', () => {
+		assert.strictEqual(isNoteName('animals', 'animals.md'), true);
+		assert.strictEqual(isNoteName('Animals.MD', 'animals.md'), true);
+		assert.strictEqual(isNoteName('  animals ', 'animals.md'), true);
+		assert.strictEqual(isNoteName('anim', 'animals.md'), false);
+		assert.strictEqual(isNoteName('animals.txt', 'animals.md'), false);
 	});
 });
