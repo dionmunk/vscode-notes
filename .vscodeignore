@@ -12,3 +12,5 @@ webpack.config.js
 **/*.ts
 **/.eslintrc.json
 **/tsconfig.json
+.github/**
+node_modules/**
