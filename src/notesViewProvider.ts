@@ -11,6 +11,8 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
     readonly onDidChangeTreeData: vscode.Event<Note | undefined> = this._onDidChangeTreeData.event;
     private folderMap: Map<string, Note[]> = new Map<string, Note[]>();
     private locationState: LocationState | undefined;
+    // what each folder on screen held when the tree last read it, to tell when it changed on disk
+    private shownFolders: Map<string, string> = new Map<string, string>();
 
     // constructor for NotesViewProvider
     constructor(
@@ -33,7 +35,42 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
     update(notesLocation: string, notesExtensions: string): void {
         this.notesLocation = notesLocation;
         this.notesExtensions = notesExtensions;
+        this.shownFolders.clear();
         this.refresh();
+    }
+
+    // a collapsed folder shows nothing, so a change inside it (or inside its subfolders) does not need a refresh
+    forgetFolder(folderPath: string): void {
+        for (const folder of [...this.shownFolders.keys()]) {
+            if (folder === folderPath || folder.startsWith(folderPath + path.sep)) {
+                this.shownFolders.delete(folder);
+            }
+        }
+    }
+
+    // has anything the tree shows been added, renamed or removed on disk since it was read?
+    // edits to a note do not count, the tree only shows names
+    async hasExternalChanges(): Promise<boolean> {
+        // the storage location itself appeared or disappeared
+        const ready = getLocationState(this.notesLocation) === 'ready';
+        if (ready !== (this.locationState === 'ready' || this.locationState === 'empty')) {
+            return true;
+        }
+
+        for (const [folder, shown] of [...this.shownFolders]) {
+            let current: string;
+            try {
+                current = folderSignature(await fs.promises.readdir(folder, { withFileTypes: true }));
+            } catch (err) {
+                // the folder is gone, its parent's listing shows that
+                this.shownFolders.delete(folder);
+                continue;
+            }
+            if (current !== shown) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // set the 'notes.locationState' context key, which picks the welcome content shown in an empty view
@@ -84,6 +121,7 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
             // First, add all folders
             try {
                 const items = fs.readdirSync(notesLocation, { withFileTypes: true });
+                this.shownFolders.set(notesLocation, folderSignature(items));
 
                 // Add folders first
                 for (const item of items) {
@@ -163,4 +201,12 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
         return true;
     }
 
+}
+
+// names and types of the entries in a folder, every entry is included so nothing the tree shows can be missed
+function folderSignature(items: fs.Dirent[]): string {
+    return items
+        .map(item => (item.isDirectory() ? 'd:' : 'f:') + item.name)
+        .sort()
+        .join('\n');
 }

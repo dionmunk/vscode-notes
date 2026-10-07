@@ -29,6 +29,8 @@ This extension contributes the following settings:
 * `Notes.notesLocation`: location where notes are stored
 * `Notes.notesDefaultNotesExtension`: extension used for new notes
 * `Notes.notesExtensions`: list of extensions recognized as notes or '*' for all extensions
+* `Notes.watchExternalChanges`: update the Notes view when notes are added, renamed or removed outside of VS Code
+* `Notes.watchIntervalSeconds`: how often the open folders are checked for those changes while the Notes view is visible
 
 ## Future Plans
 

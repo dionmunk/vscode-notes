@@ -20,5 +20,5 @@ jobs:
       - run: npm ci
       # production bundle, the same build that vscode:prepublish runs when packaging
       - run: npm run vscode:prepublish
-      # TODO: add `npm run compile` and `npm run lint` once tsconfig.json and
-      # .eslintrc.json are fixed (both currently fail on master)
+      # compiles, lints, then runs the tests in a downloaded VS Code, which needs a display
+      - run: xvfb-run -a npm test

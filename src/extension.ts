@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
+import { NotesWatcher } from './notesWatcher';
 import { getLocationState, resolveNotesLocation } from './location';
 
 let extId = 'vscode-notes';
@@ -16,10 +18,18 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// get Notes configuration
 	let notesTree = new NotesViewProvider(Notes.getNotesLocation(), String(Notes.getNotesExtensions()));
-	vscode.window.registerTreeDataProvider('notes', notesTree.init());
+	let notesView = vscode.window.createTreeView('notes', { treeDataProvider: notesTree.init() });
 
-	// update the tree with the current storage location and extensions
-	const updateTree = () => notesTree.update(Notes.getNotesLocation(), String(Notes.getNotesExtensions()));
+	// keep the tree in sync with changes made outside of this window
+	let notesWatcher = new NotesWatcher(notesTree, notesView);
+	notesWatcher.restart(Notes.getNotesLocation());
+	context.subscriptions.push(notesView, notesWatcher);
+
+	// update the tree and the watcher with the current storage location and extensions
+	const updateTree = () => {
+		notesTree.update(Notes.getNotesLocation(), String(Notes.getNotesExtensions()));
+		notesWatcher.restart(Notes.getNotesLocation());
+	};
 
 	// Listen for configuration changes
 	context.subscriptions.push(
@@ -27,6 +37,10 @@ export function activate(context: vscode.ExtensionContext) {
 			// apply a new storage location or list of extensions right away
 			if (e.affectsConfiguration('notes.notesLocation') || e.affectsConfiguration('notes.notesExtensions')) {
 				updateTree();
+			}
+			// apply new watch settings
+			else if (e.affectsConfiguration('notes.watchExternalChanges') || e.affectsConfiguration('notes.watchIntervalSeconds')) {
+				notesWatcher.restart(Notes.getNotesLocation());
 			}
 		})
 	);
@@ -104,6 +118,12 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(selectLocationDisposable);
 
+	// reveal in the file explorer of the operating system
+	let revealInOSDisposable = vscode.commands.registerCommand('Notes.revealInOS', (item?: Note) => {
+		Notes.revealInOS(item);
+	});
+	context.subscriptions.push(revealInOSDisposable);
+
 };
 
 // this method is called when extension is deactivated
@@ -171,9 +191,9 @@ export class Notes {
 					}
 					// else let the user know the file was deleted successfully
 					vscode.window.showInformationMessage(`Successfully deleted ${note.name}.`);
+					// refresh tree after deleting note
+					tree.refresh();
 				});
-				// refresh tree after deleting note
-				tree.refresh();
 			}
 		});
 	}
@@ -192,9 +212,7 @@ export class Notes {
 				// try to delete the folder recursively
 				const folderPath = path.join(folder.location, folder.name);
 
-				// Use rimraf or fs.rmdir with recursive option
-				const rimraf = require('rimraf');
-				rimraf(folderPath, (err: Error | null) => {
+				fs.rm(folderPath, { recursive: true }, err => {
 					// if there was an error deleting the folder
 					if (err) {
 						// report error
@@ -359,6 +377,36 @@ export class Notes {
 
 		// Open the document
 		vscode.window.showTextDocument(vscode.Uri.file(filePath));
+	}
+
+	// reveal a note or folder in the file explorer, or the storage location when no item is given
+	static revealInOS(item?: Note): void {
+		const target = item ? item.fullPath : Notes.requireNotesLocation();
+		if (!target) {
+			return;
+		}
+
+		// on WSL the extension runs on the Linux side and the built-in command gets a path Windows can't open,
+		// so the path is translated and Explorer is called directly
+		if (vscode.env.remoteName === 'wsl') {
+			cp.execFile('wslpath', ['-w', target], (err, stdout) => {
+				if (err) {
+					console.error(err);
+					vscode.window.showErrorMessage(`Failed to reveal '${target}' in the file explorer.`);
+					return;
+				}
+				// a folder is opened, a note is selected in the folder holding it
+				const windowsPath = stdout.trim();
+				// Explorer exits with a non zero code even when it worked, so its result is ignored
+				cp.execFile('explorer.exe', [item && !item.isFolder ? `/select,${windowsPath}` : windowsPath], () => { });
+			});
+			return;
+		}
+
+		vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(target)).then(undefined, err => {
+			console.error(err);
+			vscode.window.showErrorMessage(`Failed to reveal '${target}' in the file explorer.`);
+		});
 	}
 
 	// refresh notes

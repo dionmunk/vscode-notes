@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `Notes: Select Storage Location` command
 * the storage location can start with `~` for your home folder, or be relative to the workspace folder
+* the Notes view updates on its own when notes are added, renamed or removed outside of the window, by a sync client or another editor for example (`notes.watchExternalChanges`, `notes.watchIntervalSeconds`)
+* `Reveal in File Explorer` for a note, a folder or the storage location, including from WSL
 
 ### Changed
 
@@ -23,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * a storage location selected while the workspace settings had one was saved but never used
 * new notes and folders were created in the extension's working folder when no storage location was set
 * the Notes view is refreshed after a note or folder has been created, instead of before
+* the Notes view is refreshed after a note has been deleted, instead of before
+* deleting a folder relied on a package that was only installed as a development dependency
 
 ## [2.0.0] - 2025-03-26
 
