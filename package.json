@@ -129,6 +129,29 @@
 				"icon": "$(new-folder)"
 			},
 			{
+				"command": "Notes.searchNotes",
+				"title": "Search Notes",
+				"category": "Notes",
+				"icon": "$(search)"
+			},
+			{
+				"command": "Notes.searchInNotes",
+				"title": "Search Notes",
+				"category": "Notes",
+				"icon": "$(search)"
+			},
+			{
+				"command": "Notes.searchInWorkspaceNotes",
+				"title": "Search Workspace Notes",
+				"category": "Notes",
+				"icon": "$(search)"
+			},
+			{
+				"command": "Notes.searchInFolder",
+				"title": "Search in Folder",
+				"category": "Notes"
+			},
+			{
 				"command": "Notes.refreshNotes",
 				"title": "Refresh Notes",
 				"category": "Notes",
@@ -222,9 +245,14 @@
 					"group": "navigation@2"
 				},
 				{
-					"command": "Notes.refreshNotes",
+					"command": "Notes.searchInWorkspaceNotes",
 					"when": "view == workspaceNotes",
 					"group": "navigation@3"
+				},
+				{
+					"command": "Notes.refreshNotes",
+					"when": "view == workspaceNotes",
+					"group": "navigation@4"
 				},
 				{
 					"command": "Notes.revealWorkspaceNotesInOS",
@@ -247,14 +275,19 @@
 					"group": "navigation@2"
 				},
 				{
-					"command": "Notes.refreshNotes",
+					"command": "Notes.searchInNotes",
 					"when": "view == notes",
 					"group": "navigation@3"
 				},
 				{
-					"command": "Notes.setupNotes",
+					"command": "Notes.refreshNotes",
 					"when": "view == notes",
 					"group": "navigation@4"
+				},
+				{
+					"command": "Notes.setupNotes",
+					"when": "view == notes",
+					"group": "navigation@5"
 				},
 				{
 					"command": "Notes.revealInOS",
@@ -307,6 +340,11 @@
 					"command": "Notes.newFolder",
 					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder",
 					"group": "2_workspace@2"
+				},
+				{
+					"command": "Notes.searchInFolder",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder",
+					"group": "4_search@1"
 				},
 				{
 					"command": "Notes.newNoteInNotes",
@@ -392,6 +430,18 @@
 				},
 				{
 					"command": "Notes.move",
+					"when": "false"
+				},
+				{
+					"command": "Notes.searchInNotes",
+					"when": "false"
+				},
+				{
+					"command": "Notes.searchInWorkspaceNotes",
+					"when": "false"
+				},
+				{
+					"command": "Notes.searchInFolder",
 					"when": "false"
 				}
 			]

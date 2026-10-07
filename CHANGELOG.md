@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * a Create Folder button when a storage location is set but its folder doesn't exist
 * move notes and folders by dragging them onto a folder, onto empty space for the top level, or between Workspace Notes and Notes, or with `Move To...` in the right-click menu; open notes stay open at their new location, and several selected items move together
 * drag a note onto the editor area to open it
+* search inside your notes with VS Code's search: `Notes: Search Notes` covers Workspace Notes and Notes, the search button of each section covers that section, and `Search in Folder` in the right-click menu of a folder covers that folder, even when the notes are outside the workspace (#17)
 * notes and folders use the icons of your file icon theme
 * a new note keeps an extension typed with its name, like `query.sql` or `data.json`, when VS Code knows a language for it (or it is in `notes.notesExtensions`), otherwise it gets the default extension (#81)
 
