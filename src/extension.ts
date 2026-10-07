@@ -219,6 +219,27 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(createWorkspaceNotesFolderDisposable);
 
+	// search the notes with VS Code's search: every section, one section, or one folder
+	let searchNotesDisposable = vscode.commands.registerCommand('Notes.searchNotes', () => {
+		Notes.searchNotes();
+	});
+	context.subscriptions.push(searchNotesDisposable);
+
+	let searchInNotesDisposable = vscode.commands.registerCommand('Notes.searchInNotes', () => {
+		Notes.searchNotes('notes');
+	});
+	context.subscriptions.push(searchInNotesDisposable);
+
+	let searchInWorkspaceNotesDisposable = vscode.commands.registerCommand('Notes.searchInWorkspaceNotes', () => {
+		Notes.searchNotes('workspace');
+	});
+	context.subscriptions.push(searchInWorkspaceNotesDisposable);
+
+	let searchInFolderDisposable = vscode.commands.registerCommand('Notes.searchInFolder', (folder?: Note) => {
+		Notes.searchNotes(undefined, folder);
+	});
+	context.subscriptions.push(searchInFolderDisposable);
+
 	// reveal in the file explorer of the operating system
 	let revealInOSDisposable = vscode.commands.registerCommand('Notes.revealInOS', (item?: Note) => {
 		Notes.revealInOS(item, 'notes');
@@ -710,6 +731,35 @@ export class Notes {
 
 			// refresh tree after renaming folder
 			tree.refresh();
+		});
+	}
+
+	// open VS Code's search limited to notes: a folder, one section, or Workspace Notes and Notes together
+	// VS Code searches folders named this way even outside the workspace or when they are in .gitignore
+	static searchNotes(kind?: NotesKind, folder?: Note): void {
+		let folders: string[];
+		if (folder instanceof Note && folder.isFolder) {
+			folders = [folder.fullPath];
+		}
+		else if (kind) {
+			const location = Notes.requireLocation(kind);
+			folders = location ? [location] : [];
+		}
+		else {
+			const kinds: NotesKind[] = Notes.isWorkspaceNotesAvailable() ? ['workspace', 'notes'] : ['notes'];
+			folders = kinds.map(Notes.getLocation).filter(location => getLocationState(location) === 'ready');
+			if (!folders.length) {
+				Notes.requireLocation('notes');
+			}
+		}
+		if (!folders.length) {
+			return;
+		}
+
+		vscode.commands.executeCommand('workbench.action.findInFiles', {
+			filesToInclude: folders.join(', '),
+			showIncludesExcludes: true,
+			triggerSearch: true
 		});
 	}
 
