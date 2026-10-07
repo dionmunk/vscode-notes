@@ -443,6 +443,22 @@
 				{
 					"command": "Notes.searchInFolder",
 					"when": "false"
+				},
+				{
+					"command": "Notes.renameNote",
+					"when": "false"
+				},
+				{
+					"command": "Notes.deleteNote",
+					"when": "false"
+				},
+				{
+					"command": "Notes.renameFolder",
+					"when": "false"
+				},
+				{
+					"command": "Notes.deleteFolder",
+					"when": "false"
 				}
 			]
 		},
