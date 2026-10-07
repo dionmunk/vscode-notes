@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * move notes and folders by dragging them onto a folder, onto empty space for the top level, or between Workspace Notes and Notes, or with `Move To...` in the right-click menu; open notes stay open at their new location, and several selected items move together
 * drag a note onto the editor area to open it
 * notes and folders use the icons of your file icon theme
+* a new note keeps an extension typed with its name, like `query.sql` or `data.json`, when VS Code knows a language for it (or it is in `notes.notesExtensions`), otherwise it gets the default extension (#81)
 
 ### Changed
 
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `notes.notesLocation` is no longer synced between machines (#26), and the Notes section only uses the value in your user settings
 * a `notes.notesLocation` set in a workspace's settings is now shown as that workspace's Workspace Notes, and is replaced by `notes.workspaceNotesLocation` when a workspace notes location is selected
 * `Notes: List Notes` lists the notes of both sections and only lists files
+* only Markdown notes start with their name as a heading, other new notes start empty
 
 ### Fixed
 
@@ -38,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * deleting a folder relied on a package that was only installed as a development dependency
 * New Note and New Folder failed when a note was selected, they now create next to the note (#67, #76)
 * in a portable VS Code, a relative storage location is relative to the folder holding VS Code, so notes can be kept with it and opened from there (#38)
+* renaming a note to another extension, like `a.txt`, failed with "already exists" when all extensions were allowed, and a name with dots like `Meeting 2026.10.07` lost its last part
 
 ## [2.0.0] - 2025-03-26
 

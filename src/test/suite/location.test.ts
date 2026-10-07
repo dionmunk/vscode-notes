@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { getLocationState, getMoveDestination, getPortableFolder, isInside, resolveNotesLocation, toWorkspaceSetting } from '../../location';
+import { getLocationState, getMoveDestination, getPortableFolder, isInside, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from '../../location';
 
 suite('Notes Location', () => {
 	const home = path.join(path.sep, 'home', 'someone');
@@ -118,5 +118,23 @@ suite('Notes Location', () => {
 		assert.strictEqual(getMoveDestination(work, path.join(work, 'old')), undefined);
 		// a sibling whose name starts the same is a different folder
 		assert.strictEqual(getMoveDestination(work, path.join(path.sep, 'notes', 'work-archive')), path.join(path.sep, 'notes', 'work-archive', 'work'));
+	});
+
+	const languages = new Set(['md', 'markdown', 'txt', 'sql', 'json']);
+
+	test('a typed extension VS Code knows a language for is kept when all extensions are allowed (#81)', () => {
+		assert.deepStrictEqual(splitNoteName('query.sql', '*', languages), { base: 'query', extension: 'sql' });
+		assert.deepStrictEqual(splitNoteName('data.JSON', '*', languages), { base: 'data', extension: 'JSON' });
+	});
+
+	test('a name without a usable extension stays whole', () => {
+		assert.deepStrictEqual(splitNoteName('Meeting 2026.10.07', '*', languages), { base: 'Meeting 2026.10.07' });
+		assert.deepStrictEqual(splitNoteName('plain', '*', languages), { base: 'plain' });
+		assert.deepStrictEqual(splitNoteName('.env', '*', languages), { base: '.env' });
+	});
+
+	test('with a list of allowed extensions only those count', () => {
+		assert.deepStrictEqual(splitNoteName('notes.txt', 'md, txt', languages), { base: 'notes', extension: 'txt' });
+		assert.deepStrictEqual(splitNoteName('query.sql', 'md,txt', languages), { base: 'query.sql' });
 	});
 });
