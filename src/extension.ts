@@ -9,9 +9,6 @@ import { NotesWatcher } from './notesWatcher';
 import { MovableItem, NotesDragAndDrop } from './notesDragAndDrop';
 import { getLocationState, getMoveDestination, getPortableFolder, isInside, isNoteName, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from './location';
 
-let extId = 'vscode-notes';
-let extPub = 'dionmunk';
-
 // which storage location: Notes, from the user settings, or Workspace Notes
 type NotesKind = 'notes' | 'workspace';
 
@@ -262,12 +259,6 @@ export function deactivate() {
 }
 
 export class Notes {
-
-	constructor(
-		public settings: vscode.WorkspaceConfiguration
-	) {
-		this.settings = vscode.workspace.getConfiguration(extId);
-	}
 
 	// the first workspace folder, which relative locations are resolved against
 	static getWorkspaceFolder(): string | undefined {
@@ -844,7 +835,7 @@ export class Notes {
 	}
 
 	// setup notes
-	static setupNotes(tree?: NotesViewProvider): void {
+	static setupNotes(): void {
 		// Check if notesLocation is not null
 		const notesLocation = Notes.getNotesLocation();
 		if (notesLocation) {

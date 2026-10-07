@@ -9,7 +9,6 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<Note | undefined> = new vscode.EventEmitter<Note | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Note | undefined> = this._onDidChangeTreeData.event;
-    private folderMap: Map<string, Note[]> = new Map<string, Note[]>();
     private locationState: LocationState | undefined;
     // what each folder on screen held when the tree last read it, to tell when it changed on disk
     private shownFolders: Map<string, string> = new Map<string, string>();
@@ -133,12 +132,9 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
                 // Add folders first
                 for (const item of items) {
                     if (item.isDirectory()) {
-                        const folderPath = path.join(notesLocation, item.name);
                         const folderNote = new Note(
                             item.name,
                             notesLocation,
-                            '', // category
-                            '', // tags
                             true // isDirectory
                         );
                         result.push(folderNote);
@@ -147,12 +143,10 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
 
                 // Then add notes
                 const listOfNotes = (note: string): Note => {
-                    // return a note with the given note name, notes location, empty category, empty tags, and the command to open the note
+                    // return a note with the given note name, notes location, and the command to open the note
                     return new Note(
                         path.basename(note),
                         notesLocation,
-                        '', // category
-                        '', // tags
                         false, // isDirectory
                         {
                             command: 'Notes.openNote',

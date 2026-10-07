@@ -12,8 +12,7 @@
 		"strict": true, /* enable all strict type-checking options */
 		"esModuleInterop": true, /* Enables emit interoperability between CommonJS and ES Modules */
 		"typeRoots": [
-			"./node_modules/@types",
-			"./src/types"
+			"./node_modules/@types"
 		],
 		/* Additional Checks */
 		// "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
