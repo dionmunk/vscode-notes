@@ -6,7 +6,8 @@ import * as path from 'path';
 import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
-import { getLocationState, getPortableFolder, resolveNotesLocation, toWorkspaceSetting } from './location';
+import { MovableItem, NotesDragAndDrop } from './notesDragAndDrop';
+import { getLocationState, getMoveDestination, getPortableFolder, isInside, resolveNotesLocation, toWorkspaceSetting } from './location';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
@@ -24,12 +25,23 @@ export function activate(context: vscode.ExtensionContext) {
 
 	console.log('"vscode-notes" is active.');
 
+	// dragging and dropping moves notes, refreshing both trees (only called once activation is done)
+	const moveItems = (items: readonly MovableItem[], targetFolder: string) => Notes.moveItems(items, targetFolder, trees);
+
 	// Notes: the location in your user settings, the same in every window
 	let notesTree = new NotesViewProvider('', String(Notes.getNotesExtensions()));
-	let notesView = vscode.window.createTreeView('notes', { treeDataProvider: notesTree.init() });
+	let notesView = vscode.window.createTreeView('notes', {
+		treeDataProvider: notesTree.init(),
+		dragAndDropController: new NotesDragAndDrop(() => notesTree.location, moveItems),
+		canSelectMany: true
+	});
 	// Workspace Notes: the notes of the open workspace, shown above Notes when it has some
 	let workspaceTree = new NotesViewProvider('', String(Notes.getNotesExtensions()), 'notes.workspaceLocationState');
-	let workspaceView = vscode.window.createTreeView('workspaceNotes', { treeDataProvider: workspaceTree.init() });
+	let workspaceView = vscode.window.createTreeView('workspaceNotes', {
+		treeDataProvider: workspaceTree.init(),
+		dragAndDropController: new NotesDragAndDrop(() => workspaceTree.location, moveItems),
+		canSelectMany: true
+	});
 
 	// keep both trees in sync with changes made outside of this window
 	let notesWatcher = new NotesWatcher(notesTree, notesView);
@@ -155,6 +167,16 @@ export function activate(context: vscode.ExtensionContext) {
 		Notes.renameNote(note, trees);
 	});
 	context.subscriptions.push(renameNoteDisposable);
+
+	// move notes and folders, the selected ones when the clicked item is part of the selection
+	let moveDisposable = vscode.commands.registerCommand('Notes.move', async (item?: Note, items?: Note[]) => {
+		const selected = (items?.length ? items : item ? [item] : []).filter(selectedItem => selectedItem instanceof Note);
+		const targetFolder = selected.length ? await Notes.pickMoveTarget(selected) : undefined;
+		if (targetFolder) {
+			await Notes.moveItems(selected, targetFolder, trees);
+		}
+	});
+	context.subscriptions.push(moveDisposable);
 
 	// rename folder
 	let renameFolderDisposable = vscode.commands.registerCommand('Notes.renameFolder', (folder: Note) => {
@@ -685,6 +707,79 @@ export class Notes {
 		});
 	}
 
+	// move notes and folders into a folder, through VS Code so open editors follow them
+	static async moveItems(items: readonly MovableItem[], targetFolder: string, tree: Refreshable): Promise<void> {
+		// a note inside a folder that moves too goes along with it
+		const moving = items.filter(item => !items.some(other => other !== item && other.isFolder && isInside(item.fullPath, other.fullPath)));
+		const problems: string[] = [];
+		let moved = 0;
+
+		for (const item of moving) {
+			const destination = getMoveDestination(item.fullPath, targetFolder);
+			if (!destination) {
+				if (item.isFolder && isInside(targetFolder, item.fullPath)) {
+					problems.push(`'${item.name}' can't be moved into itself.`);
+				}
+				continue;
+			}
+			if (fs.existsSync(destination)) {
+				problems.push(`'${item.name}' already exists in '${path.basename(targetFolder)}'.`);
+				continue;
+			}
+			const edit = new vscode.WorkspaceEdit();
+			edit.renameFile(vscode.Uri.file(item.fullPath), vscode.Uri.file(destination), { overwrite: false });
+			if (await vscode.workspace.applyEdit(edit)) {
+				moved++;
+			}
+			else {
+				problems.push(`Failed to move '${item.name}'.`);
+			}
+		}
+
+		if (moved) {
+			tree.refresh();
+		}
+		if (problems.length) {
+			vscode.window.showWarningMessage(problems.join(' '));
+		}
+	}
+
+	// pick a folder to move notes and folders into, from Workspace Notes and Notes
+	static async pickMoveTarget(items: readonly MovableItem[]): Promise<string | undefined> {
+		const sections = [{ label: 'Notes', root: Notes.getNotesLocation() }];
+		if (Notes.isWorkspaceNotesAvailable()) {
+			sections.unshift({ label: 'Workspace Notes', root: Notes.getWorkspaceNotesLocation() });
+		}
+
+		const picks: (vscode.QuickPickItem & { folder?: string })[] = [];
+		for (const section of sections) {
+			if (getLocationState(section.root) !== 'ready') {
+				continue;
+			}
+			// only folders where at least one of the items can go
+			const folders = [section.root, ...await listFolders(section.root)]
+				.filter(folder => items.some(item => getMoveDestination(item.fullPath, folder)));
+			if (!folders.length) {
+				continue;
+			}
+			picks.push({ label: section.label, kind: vscode.QuickPickItemKind.Separator });
+			for (const folder of folders) {
+				const relative = path.relative(section.root, folder);
+				picks.push(relative
+					? { label: `$(folder) ${relative.split(path.sep).join('/')}`, folder }
+					: { label: `$(root-folder) ${section.label}`, description: 'top level', folder });
+			}
+		}
+
+		if (!picks.length) {
+			vscode.window.showInformationMessage('There is no other folder to move to.');
+			return undefined;
+		}
+		const what = items.length === 1 ? `'${items[0].name}'` : `${items.length} items`;
+		const picked = await vscode.window.showQuickPick(picks, { placeHolder: `Move ${what} to` });
+		return picked?.folder;
+	}
+
 	// setup notes
 	static setupNotes(tree?: NotesViewProvider): void {
 		// Check if notesLocation is not null
@@ -801,4 +896,20 @@ export class Notes {
 			vscode.window.showErrorMessage(`Failed to create ${location}.`);
 		}
 	}
+}
+
+// every folder below a folder, depth first and sorted by name
+async function listFolders(folder: string): Promise<string[]> {
+	let entries: fs.Dirent[];
+	try {
+		entries = await fs.promises.readdir(folder, { withFileTypes: true });
+	} catch (err) {
+		return [];
+	}
+	const folders: string[] = [];
+	for (const entry of entries.filter(entry => entry.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+		const child = path.join(folder, entry.name);
+		folders.push(child, ...await listFolders(child));
+	}
+	return folders;
 }

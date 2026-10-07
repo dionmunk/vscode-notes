@@ -151,6 +151,11 @@
 				}
 			},
 			{
+				"command": "Notes.move",
+				"title": "Move To...",
+				"category": "Notes"
+			},
+			{
 				"command": "Notes.revealInOS",
 				"title": "Reveal in File Explorer",
 				"category": "Notes"
@@ -284,6 +289,16 @@
 					"group": "1_modification@2"
 				},
 				{
+					"command": "Notes.move",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == note",
+					"group": "1_modification@3"
+				},
+				{
+					"command": "Notes.move",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder",
+					"group": "1_modification@3"
+				},
+				{
 					"command": "Notes.newNote",
 					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder",
 					"group": "2_workspace@1"
@@ -373,6 +388,10 @@
 				},
 				{
 					"command": "Notes.createWorkspaceNotesFolder",
+					"when": "false"
+				},
+				{
+					"command": "Notes.move",
 					"when": "false"
 				}
 			]

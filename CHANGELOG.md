@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * a Workspace Notes section above Notes for the notes of the open workspace, shown when the workspace has notes (#4), with the new `notes.workspaceNotesLocation` setting and the `Notes: Set Up Workspace Notes` and `Notes: Select Workspace Notes Location` commands
 * `Notes: New Note` and `Notes: New Folder` ask whether to use Workspace Notes or Notes when both are available
 * a Create Folder button when a storage location is set but its folder doesn't exist
+* move notes and folders by dragging them onto a folder, onto empty space for the top level, or between Workspace Notes and Notes, or with `Move To...` in the right-click menu; open notes stay open at their new location, and several selected items move together
+* drag a note onto the editor area to open it
+* notes and folders use the icons of your file icon theme
 
 ### Changed
 

@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { getLocationState, getPortableFolder, resolveNotesLocation, toWorkspaceSetting } from '../../location';
+import { getLocationState, getMoveDestination, getPortableFolder, isInside, resolveNotesLocation, toWorkspaceSetting } from '../../location';
 
 suite('Notes Location', () => {
 	const home = path.join(path.sep, 'home', 'someone');
@@ -89,5 +89,34 @@ suite('Notes Location', () => {
 		const install = path.join(path.sep, 'usb', 'VSCode');
 		const portable = getPortableFolder({ VSCODE_PORTABLE: path.join(install, 'data') });
 		assert.strictEqual(resolveNotesLocation('data/Notes', home, portable), path.join(install, 'data', 'Notes'));
+	});
+
+	test('a path is inside a folder when it is the folder or below it', () => {
+		const notes = path.join(path.sep, 'notes');
+		assert.strictEqual(isInside(notes, notes), true);
+		assert.strictEqual(isInside(path.join(notes, 'work', 'a.md'), notes), true);
+		assert.strictEqual(isInside(path.join(path.sep, 'notes-archive'), notes), false);
+		assert.strictEqual(isInside(path.join(notes, '..notes'), notes), true);
+		assert.strictEqual(isInside(path.sep, notes), false);
+	});
+
+	test('moving a note into a folder puts it there', () => {
+		const notes = path.join(path.sep, 'notes');
+		assert.strictEqual(getMoveDestination(path.join(notes, 'a.md'), path.join(notes, 'work')), path.join(notes, 'work', 'a.md'));
+		assert.strictEqual(getMoveDestination(path.join(notes, 'work', 'a.md'), notes), path.join(notes, 'a.md'));
+	});
+
+	test('moving into the folder an item is already in does nothing', () => {
+		const notes = path.join(path.sep, 'notes');
+		assert.strictEqual(getMoveDestination(path.join(notes, 'a.md'), notes), undefined);
+		assert.strictEqual(getMoveDestination(path.join(notes, 'work'), notes + path.sep), undefined);
+	});
+
+	test('a folder can not be moved into itself or a folder inside it', () => {
+		const work = path.join(path.sep, 'notes', 'work');
+		assert.strictEqual(getMoveDestination(work, work), undefined);
+		assert.strictEqual(getMoveDestination(work, path.join(work, 'old')), undefined);
+		// a sibling whose name starts the same is a different folder
+		assert.strictEqual(getMoveDestination(work, path.join(path.sep, 'notes', 'work-archive')), path.join(path.sep, 'notes', 'work-archive', 'work'));
 	});
 });

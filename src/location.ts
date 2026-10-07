@@ -69,3 +69,18 @@ export function getPortableFolder(env: NodeJS.ProcessEnv = process.env): string 
 	const portableData = env.VSCODE_PORTABLE;
 	return portableData ? path.dirname(portableData) : undefined;
 }
+
+// is a path the folder itself or somewhere inside it?
+export function isInside(target: string, folder: string): boolean {
+	const relative = path.relative(folder, target);
+	return relative === '' || !(relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative));
+}
+
+// where a note or folder ends up when moved into a folder, or undefined when the move would do nothing
+// (it is already there) or is impossible (a folder moved into itself)
+export function getMoveDestination(source: string, targetFolder: string): string | undefined {
+	if (isInside(targetFolder, source) || path.resolve(path.dirname(source)) === path.resolve(targetFolder)) {
+		return undefined;
+	}
+	return path.join(targetFolder, path.basename(source));
+}

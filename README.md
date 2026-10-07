@@ -17,6 +17,7 @@ The extension can be accessed using the Notes icon that is placed in the Activit
 * quickly create new notes by using the `Alt+N` shortcut, or by click on the `+` icon at the top when you are in Notes.
 * quickly access your list of notes by using the `Alt+L` shortcut to bring up a searchable list at the top of VSCode.
 * hovering over a note inside Notes displays two icons, one allows you to rename a note and the other allows you to delete a note. *Deleting a note is permanent, so be careful.*
+* move notes and folders by dragging them onto a folder (or onto empty space for the top level), between Workspace Notes and Notes, or with **Move To...** in the right-click menu. Select several with `Cmd`/`Ctrl` to move them together, and drag a note onto the editor to open it.
 
 ## Getting Started
 
