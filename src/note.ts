@@ -21,14 +21,9 @@ export class Note extends vscode.TreeItem {
 		this.isFolder = isDirectory;
 		this.fullPath = path.join(location, name);
 
-		// Set appropriate icon based on whether this is a folder or file
-		if (isDirectory) {
-			// Use VS Code's built-in folder icons
-			this.iconPath = new vscode.ThemeIcon('folder');
-		} else {
-			// Use VS Code's built-in file type icons based on extension
-			this.iconPath = vscode.ThemeIcon.File;
-		}
+		// the file icon theme picks the icon from the resource, by extension for a note and by name for a folder
+		this.resourceUri = vscode.Uri.file(this.fullPath);
+		this.iconPath = isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File;
 
 		// Set contextValue based on whether this is a folder or note
 		this.contextValue = isDirectory ? 'folder' : 'note';
