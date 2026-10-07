@@ -17,7 +17,8 @@ The extension can be accessed using the Notes icon that is placed in the Activit
 * quickly create new notes by using the `Alt+N` shortcut, or by clicking the New Note icon at the top of Notes.
 * quickly access your list of notes by using the `Alt+L` shortcut to bring up a searchable list at the top of VSCode, including the notes in folders. If what you type isn't a note, press `Enter` to create it.
 * search inside your notes with **Notes: Search Notes**, the search button at the top of each section, or **Search in Folder** in the right-click menu of a folder. It opens VS Code's Search view limited to your notes, wherever they are stored.
-* right-click a note or folder to rename, delete, move or search it, or to reveal it in your file explorer. *Deleting a note is permanent, so be careful.*
+* right-click a note or folder to rename, delete, move or search it, or to reveal it in your file explorer, and a Markdown note to open its preview. *Deleting a note is permanent, so be careful.*
+* notes open the way they do from the Explorer, with the editor VS Code uses for their file type, so images open in the image viewer.
 * move notes and folders by dragging them onto a folder (or onto empty space for the top level), between Workspace Notes and Notes, or with **Move To...** in the right-click menu. Select several with `Cmd`/`Ctrl` to move them together, and drag a note onto the editor to open it.
 
 ## Getting Started

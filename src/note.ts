@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { isMarkdownFile } from './languages';
 
 export class Note extends vscode.TreeItem {
 	public readonly isFolder: boolean;
@@ -21,8 +22,9 @@ export class Note extends vscode.TreeItem {
 		this.resourceUri = vscode.Uri.file(this.fullPath);
 		this.iconPath = isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File;
 
-		// Set contextValue based on whether this is a folder or note
-		this.contextValue = isDirectory ? 'folder' : 'note';
+		// Set contextValue based on whether this is a folder or note; Markdown notes get Open Preview,
+		// which the Explorer decides by language, a context a tree item doesn't get
+		this.contextValue = isDirectory ? 'folder' : isMarkdownFile(name) ? 'markdownNote' : 'note';
 	}
 
 	tooltip = this.name;

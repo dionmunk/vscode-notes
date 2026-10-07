@@ -6,6 +6,7 @@ import * as path from 'path';
 import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
+import { getLanguageExtensions, isMarkdownFile, resetLanguageExtensions } from './languages';
 import { MovableItem, NotesDragAndDrop } from './notesDragAndDrop';
 import { getLocationState, getMoveDestination, getPortableFolder, isInside, isNoteName, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from './location';
 
@@ -93,6 +94,8 @@ export function activate(context: vscode.ExtensionContext) {
 		}),
 		// relative locations depend on the workspace folder
 		vscode.workspace.onDidChangeWorkspaceFolders(() => updateTrees(true)),
+		// a newly installed extension can add a language, like Markdown files with another extension
+		vscode.extensions.onDidChange(() => resetLanguageExtensions()),
 		// a workspace notes folder may have been created while the window was in the background
 		vscode.window.onDidChangeWindowState(state => {
 			if (state.focused) {
@@ -158,6 +161,12 @@ export function activate(context: vscode.ExtensionContext) {
 		updateTrees(true);
 	});
 	context.subscriptions.push(refreshNotesDisposable);
+
+	// open the Markdown preview of a note
+	let openPreviewDisposable = vscode.commands.registerCommand('Notes.openPreview', (note: Note) => {
+		Notes.openPreview(note);
+	});
+	context.subscriptions.push(openPreviewDisposable);
 
 	// rename note
 	let renameNoteDisposable = vscode.commands.registerCommand('Notes.renameNote', (note: Note) => {
@@ -362,24 +371,6 @@ export class Notes {
 		const target = kind ?? await Notes.pickKind();
 		return target ? Notes.requireLocation(target) : undefined;
 	}
-	// the file extensions VS Code has a language for, with the language, from every installed extension
-	// including the built-in ones
-	static getLanguageExtensions(): Map<string, string> {
-		// plain text is registered by VS Code itself rather than by an extension
-		const languages = new Map<string, string>([['txt', 'plaintext']]);
-		for (const extension of vscode.extensions.all) {
-			for (const language of extension.packageJSON?.contributes?.languages ?? []) {
-				for (const fileExtension of language.extensions ?? []) {
-					const key = String(fileExtension).replace(/^\./, '').toLowerCase();
-					if (!languages.has(key)) {
-						languages.set(key, language.id);
-					}
-				}
-			}
-		}
-		return languages;
-	}
-
 	// get notes default extension
 	static getNotesDefaultNoteExtension() {
 		return vscode.workspace.getConfiguration('notes').get('notesDefaultNoteExtension');
@@ -488,7 +479,7 @@ export class Notes {
 			const name = quickPick.value.trim();
 			quickPick.hide();
 			if (picked?.filePath) {
-				vscode.window.showTextDocument(vscode.Uri.file(picked.filePath));
+				Notes.openNote(picked.filePath);
 			}
 			else if (picked?.createIn && name) {
 				await Notes.createNote(picked.createIn, name, tree);
@@ -518,13 +509,13 @@ export class Notes {
 	// create a note in a folder and open it, keeping an extension typed with the name, like query.sql,
 	// otherwise using the default one
 	static async createNote(folder: string, noteName: string, tree: Refreshable): Promise<void> {
-		const languages = Notes.getLanguageExtensions();
+		const languages = getLanguageExtensions();
 		const { base, extension } = splitNoteName(noteName, String(Notes.getNotesExtensions()), new Set(languages.keys()));
 		const noteExtension = extension ?? String(Notes.getNotesDefaultNoteExtension());
 		// set note path
 		const filePath = path.join(folder, `${base.replace(/\:/gi, '')}.${noteExtension}`);
 		// a Markdown note starts with its name as a heading, other files start empty
-		const markdown = languages.get(noteExtension.toLowerCase()) === 'markdown' || ['md', 'markdown'].includes(noteExtension.toLowerCase());
+		const markdown = isMarkdownFile(`note.${noteExtension}`);
 		const firstLine = markdown ? `# ${base}\n\n` : '';
 
 		// if a note with name already exists
@@ -614,8 +605,16 @@ export class Notes {
 			filePath = path.join(String(note.location), String(note.name));
 		}
 
-		// Open the document
-		vscode.window.showTextDocument(vscode.Uri.file(filePath));
+		// open it like the Explorer does: with the editor associated with the file type, like the image viewer
+		// for an image, or the preview for Markdown when the user associated it with that
+		vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath));
+	}
+
+	// open the Markdown preview of a note, as Open Preview does in the Explorer
+	static openPreview(note: Note): void {
+		if (note instanceof Note && !note.isFolder) {
+			vscode.commands.executeCommand('markdown.showPreview', vscode.Uri.file(note.fullPath));
+		}
 	}
 
 	// reveal a note or folder in the file explorer, or a storage location when no item is given
@@ -677,7 +676,7 @@ export class Notes {
 
 			// use the new name as typed when it ends with an extension a note can have, like a.txt,
 			// otherwise keep the current extension, so a name like 'Meeting 2026.10.07' stays whole
-			const { extension } = splitNoteName(newNoteName, String(Notes.getNotesExtensions()), new Set(Notes.getLanguageExtensions().keys()));
+			const { extension } = splitNoteName(newNoteName, String(Notes.getNotesExtensions()), new Set(getLanguageExtensions().keys()));
 			let noteName: string = extension || !noteExtension ? newNoteName : `${newNoteName}.${noteExtension}`;
 
 			// check for existing note with the same name

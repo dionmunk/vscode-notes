@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* `Open Preview` in the right-click menu of a Markdown note, like in the Explorer (#10)
+
+### Changed
+
+* notes open like they do from the Explorer, with the editor VS Code associates with their file type: images open in the image viewer, and Markdown opens in the preview or another Markdown editor when `workbench.editorAssociations` says so (#53, #70); a new note still opens as text
+
+### Fixed
+
+* clicking an image in Notes did nothing
+
 ## [2.1.0] - 2026-10-07
 
 ### Added

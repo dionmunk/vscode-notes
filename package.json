@@ -158,6 +158,11 @@
 				"icon": "$(refresh)"
 			},
 			{
+				"command": "Notes.openPreview",
+				"title": "Open Preview",
+				"category": "Notes"
+			},
+			{
 				"command": "Notes.renameNote",
 				"title": "Rename Note",
 				"icon": {
@@ -302,13 +307,18 @@
 			],
 			"view/item/context": [
 				{
+					"command": "Notes.openPreview",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == markdownNote && !hasCustomMarkdownPreview",
+					"group": "navigation"
+				},
+				{
 					"command": "Notes.renameNote",
-					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == note",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem =~ /^(note|markdownNote)$/",
 					"group": "1_modification@1"
 				},
 				{
 					"command": "Notes.deleteNote",
-					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == note",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem =~ /^(note|markdownNote)$/",
 					"group": "1_modification@2"
 				},
 				{
@@ -323,7 +333,7 @@
 				},
 				{
 					"command": "Notes.move",
-					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == note",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem =~ /^(note|markdownNote)$/",
 					"group": "1_modification@3"
 				},
 				{
@@ -378,7 +388,7 @@
 				},
 				{
 					"command": "Notes.revealInOS",
-					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == note && (!remoteName || remoteName == wsl)",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem =~ /^(note|markdownNote)$/ && (!remoteName || remoteName == wsl)",
 					"group": "3_open@1"
 				},
 				{
@@ -458,6 +468,10 @@
 				},
 				{
 					"command": "Notes.deleteFolder",
+					"when": "false"
+				},
+				{
+					"command": "Notes.openPreview",
 					"when": "false"
 				}
 			]
