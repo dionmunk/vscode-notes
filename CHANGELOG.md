@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * a Create Folder button when a storage location is set but its folder doesn't exist
 * move notes and folders by dragging them onto a folder, onto empty space for the top level, or between Workspace Notes and Notes, or with `Move To...` in the right-click menu; open notes stay open at their new location, and several selected items move together
 * drag a note onto the editor area to open it
+* `Notes: List Notes` (`Alt+L`) offers to create a note with the name you typed when it isn't a note yet, so `Enter` creates it when nothing matches, in either section when the workspace has notes (#34)
 * search inside your notes with VS Code's search: `Notes: Search Notes` covers Workspace Notes and Notes, the search button of each section covers that section, and `Search in Folder` in the right-click menu of a folder covers that folder, even when the notes are outside the workspace (#17)
 * notes and folders use the icons of your file icon theme
 * a new note keeps an extension typed with its name, like `query.sql` or `data.json`, when VS Code knows a language for it (or it is in `notes.notesExtensions`), otherwise it gets the default extension (#81)
@@ -28,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * the Notes view explains why it is empty: no storage location, a storage location that can't be found, or no notes yet
 * `notes.notesLocation` is no longer synced between machines (#26), and the Notes section only uses the value in your user settings
 * a `notes.notesLocation` set in a workspace's settings is now shown as that workspace's Workspace Notes, and is replaced by `notes.workspaceNotesLocation` when a workspace notes location is selected
-* `Notes: List Notes` lists the notes of both sections and only lists files
+* `Notes: List Notes` lists the notes of both sections, including those in folders, and only lists files
 * only Markdown notes start with their name as a heading, other new notes start empty
 
 ### Fixed
