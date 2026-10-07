@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * `Open Preview` in the right-click menu of a Markdown note, like in the Explorer (#10)
+* `Notes: List Notes` (`Alt+L`) shows the notes you opened recently first, like Quick Open, wherever you opened them from, and `Notes: Clear Recently Opened` forgets them (#18)
 
 ### Changed
 
