@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `Open Preview` in the right-click menu of a Markdown note, like in the Explorer (#10)
 * `Notes: List Notes` (`Alt+L`) shows the notes you opened recently first, like Quick Open, wherever you opened them from, and `Notes: Clear Recently Opened` forgets them (#18)
+* a Sort By button after Search in each section, to sort notes and folders by name (A to Z or Z to A) or newest first by date modified or created, saved in the new `notes.sortOrder` setting; folders stay first, and List Notes uses the same order after the recently opened notes (#22, #63)
 
 ### Changed
 

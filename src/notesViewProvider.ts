@@ -4,6 +4,7 @@ import * as gl from 'glob';
 import * as path from 'path';
 import { Note } from './note';
 import { LocationState, getLocationState } from './location';
+import { compareEntries, readSortEntry, toSortOrder } from './sortOrder';
 
 export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
 
@@ -169,16 +170,10 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
                 console.error('Error reading directory:', err);
             }
 
-            // Sort: folders first, then notes alphabetically
-            result.sort((a, b) => {
-                if (a.isFolder && !b.isFolder) {
-                    return -1;
-                }
-                if (!a.isFolder && b.isFolder) {
-                    return 1;
-                }
-                return a.name.localeCompare(b.name);
-            });
+            // Sort: folders first, then by the notes.sortOrder setting
+            const order = toSortOrder(vscode.workspace.getConfiguration('notes').get('sortOrder'));
+            const entries = new Map(result.map(note => [note, readSortEntry(note.fullPath, note.isFolder, order)]));
+            result.sort((a, b) => compareEntries(entries.get(a)!, entries.get(b)!, order));
 
             return result;
         }

@@ -56,6 +56,23 @@
 					"default": "*",
 					"description": "A comma separated list of allowed extensions for notes. Use '*' (asterisk) to allow all file types. (do not include the dot or spaces)"
 				},
+				"notes.sortOrder": {
+					"type": "string",
+					"default": "name",
+					"enum": [
+						"name",
+						"nameDescending",
+						"modified",
+						"created"
+					],
+					"enumDescriptions": [
+						"By name, A to Z.",
+						"By name, Z to A.",
+						"By date modified, newest first.",
+						"By date created, newest first. Where the file system does not record it, the date modified is used."
+					],
+					"description": "How notes and folders are sorted in Notes and Workspace Notes, and the notes after the recently opened ones in List Notes. Folders always come first."
+				},
 				"notes.watchExternalChanges": {
 					"type": "boolean",
 					"default": true,
@@ -155,6 +172,12 @@
 				"command": "Notes.searchInFolder",
 				"title": "Search in Folder",
 				"category": "Notes"
+			},
+			{
+				"command": "Notes.sortBy",
+				"title": "Sort By...",
+				"category": "Notes",
+				"icon": "$(sort-precedence)"
 			},
 			{
 				"command": "Notes.refreshNotes",
@@ -260,9 +283,14 @@
 					"group": "navigation@3"
 				},
 				{
-					"command": "Notes.refreshNotes",
+					"command": "Notes.sortBy",
 					"when": "view == workspaceNotes",
 					"group": "navigation@4"
+				},
+				{
+					"command": "Notes.refreshNotes",
+					"when": "view == workspaceNotes",
+					"group": "navigation@5"
 				},
 				{
 					"command": "Notes.revealWorkspaceNotesInOS",
@@ -290,14 +318,19 @@
 					"group": "navigation@3"
 				},
 				{
-					"command": "Notes.refreshNotes",
+					"command": "Notes.sortBy",
 					"when": "view == notes",
 					"group": "navigation@4"
 				},
 				{
-					"command": "Notes.setupNotes",
+					"command": "Notes.refreshNotes",
 					"when": "view == notes",
 					"group": "navigation@5"
+				},
+				{
+					"command": "Notes.setupNotes",
+					"when": "view == notes",
+					"group": "navigation@6"
 				},
 				{
 					"command": "Notes.revealInOS",

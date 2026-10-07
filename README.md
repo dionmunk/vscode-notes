@@ -17,6 +17,7 @@ The extension can be accessed using the Notes icon that is placed in the Activit
 * quickly create new notes by using the `Alt+N` shortcut, or by clicking the New Note icon at the top of Notes.
 * quickly access your list of notes by using the `Alt+L` shortcut to bring up a searchable list at the top of VSCode, including the notes in folders, with the notes you opened recently first. If what you type isn't a note, press `Enter` to create it.
 * search inside your notes with **Notes: Search Notes**, the search button at the top of each section, or **Search in Folder** in the right-click menu of a folder. It opens VS Code's Search view limited to your notes, wherever they are stored.
+* sort notes by name or by date modified or created with the Sort By button at the top of Notes.
 * right-click a note or folder to rename, delete, move or search it, or to reveal it in your file explorer, and a Markdown note to open its preview. *Deleting a note is permanent, so be careful.*
 * notes open the way they do from the Explorer, with the editor VS Code uses for their file type, so images open in the image viewer.
 * move notes and folders by dragging them onto a folder (or onto empty space for the top level), between Workspace Notes and Notes, or with **Move To...** in the right-click menu. Select several with `Cmd`/`Ctrl` to move them together, and drag a note onto the editor to open it.
@@ -44,6 +45,7 @@ This extension contributes the following settings:
 * `notes.notesLocation`: location of the notes in the Notes section, set in your user settings and not synced between machines. In a [portable](https://code.visualstudio.com/docs/editor/portable) VS Code, a relative path is relative to the folder holding VS Code, so the notes can travel with it (for example `data/Notes` on Windows and Linux)
 * `notes.workspaceNotesLocation`: location of the notes in the Workspace Notes section, relative to the workspace folder or a full path
 * `notes.notesDefaultNoteExtension`: extension used for new notes that don't have one in their name
+* `notes.sortOrder`: how notes and folders are sorted, by name (A to Z or Z to A) or newest first by date modified or created, also set with the Sort By button at the top of each section
 * `notes.notesExtensions`: list of extensions recognized as notes or '*' for all extensions
 * `notes.watchExternalChanges`: update the Notes view when notes are added, renamed or removed outside of VS Code
 * `notes.watchIntervalSeconds`: how often the open folders are checked for those changes while the Notes view is visible
