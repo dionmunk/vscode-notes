@@ -38,7 +38,7 @@ A multi-root workspace uses the first folder for relative locations.
 
 This extension contributes the following settings:
 
-* `Notes.notesLocation`: location of the notes in the Notes section, set in your user settings and not synced between machines
+* `Notes.notesLocation`: location of the notes in the Notes section, set in your user settings and not synced between machines. In a [portable](https://code.visualstudio.com/docs/editor/portable) VS Code, a relative path is relative to the folder holding VS Code, so the notes can travel with it (for example `data/Notes` on Windows and Linux)
 * `Notes.workspaceNotesLocation`: location of the notes in the Workspace Notes section, relative to the workspace folder or a full path
 * `Notes.notesDefaultNotesExtension`: extension used for new notes
 * `Notes.notesExtensions`: list of extensions recognized as notes or '*' for all extensions

@@ -61,3 +61,11 @@ export function toWorkspaceSetting(folder: string, workspaceDir: string): string
 	// forward slashes work on every platform, and the setting may be shared through the repository
 	return relative.split(path.sep).join('/');
 }
+
+// the folder holding a portable VS Code, which a relative notes location is resolved against so the notes
+// travel with it: VS Code sets VSCODE_PORTABLE to its portable data folder, the `data` folder in the
+// program folder on Windows and Linux, or `code-portable-data` next to the application on macOS
+export function getPortableFolder(env: NodeJS.ProcessEnv = process.env): string | undefined {
+	const portableData = env.VSCODE_PORTABLE;
+	return portableData ? path.dirname(portableData) : undefined;
+}
