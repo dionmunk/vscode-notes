@@ -8,6 +8,7 @@ import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
 import { getLanguageExtensions, isMarkdownFile, resetLanguageExtensions } from './languages';
 import { RecentNotes } from './recentNotes';
+import { compareEntries, readSortEntry, SortOrder, toSortOrder } from './sortOrder';
 import { MovableItem, NotesDragAndDrop } from './notesDragAndDrop';
 import { getLocationState, getMoveDestination, getPortableFolder, isInside, isNoteName, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from './location';
 
@@ -84,7 +85,8 @@ export function activate(context: vscode.ExtensionContext) {
 			// apply a new storage location or list of extensions right away
 			if (e.affectsConfiguration('notes.notesLocation')
 				|| e.affectsConfiguration('notes.workspaceNotesLocation')
-				|| e.affectsConfiguration('notes.notesExtensions')) {
+				|| e.affectsConfiguration('notes.notesExtensions')
+				|| e.affectsConfiguration('notes.sortOrder')) {
 				updateTrees(true);
 			}
 			// apply new watch settings
@@ -141,6 +143,12 @@ export function activate(context: vscode.ExtensionContext) {
 		Notes.listNotes(trees, recentNotes);
 	});
 	context.subscriptions.push(listNotesDisposable);
+
+	// choose how notes are sorted
+	let sortByDisposable = vscode.commands.registerCommand('Notes.sortBy', () => {
+		Notes.pickSortOrder();
+	});
+	context.subscriptions.push(sortByDisposable);
 
 	// forget the recently opened notes
 	let clearRecentNotesDisposable = vscode.commands.registerCommand('Notes.clearRecentlyOpened', async () => {
@@ -486,10 +494,16 @@ export class Notes {
 		const recent = recentNotes.get()
 			.map(filePath => notes.find(note => note.filePath === filePath))
 			.filter((note): note is NoteItem => !!note);
+		// the other notes in the order chosen for the tree; by name they stay grouped by folder
+		const order = toSortOrder(vscode.workspace.getConfiguration('notes').get('sortOrder'));
 		const others = notes.filter(note => !recent.includes(note));
+		if (order !== 'name') {
+			const entries = new Map(others.map(note => [note, readSortEntry(note.filePath!, false, order)]));
+			others.sort((a, b) => compareEntries(entries.get(a)!, entries.get(b)!, order));
+		}
 		const listed: NoteItem[] = recent.length
 			? [{ label: 'recently opened', kind: vscode.QuickPickItemKind.Separator }, ...recent, { label: 'other notes', kind: vscode.QuickPickItemKind.Separator }, ...others]
-			: notes;
+			: others;
 
 		const quickPick = vscode.window.createQuickPick<NoteItem>();
 		quickPick.placeholder = 'Open a note, or type a name to create one';
@@ -516,6 +530,46 @@ export class Notes {
 			}
 			else if (picked?.createIn && name) {
 				await Notes.createNote(picked.createIn, name, tree);
+			}
+		});
+		quickPick.onDidHide(() => quickPick.dispose());
+		quickPick.show();
+	}
+
+	// choose how notes and folders are sorted, saved in the notes.sortOrder setting
+	static pickSortOrder(): void {
+		const config = vscode.workspace.getConfiguration('notes');
+		const current = toSortOrder(config.get('sortOrder'));
+		const options: { order: SortOrder, label: string, description: string }[] = [
+			{ order: 'name', label: 'Name', description: 'A to Z' },
+			{ order: 'nameDescending', label: 'Name', description: 'Z to A' },
+			{ order: 'modified', label: 'Date Modified', description: 'newest first' },
+			{ order: 'created', label: 'Date Created', description: 'newest first' },
+		];
+		type SortItem = vscode.QuickPickItem & { order: SortOrder };
+		// menus can't show a check mark for an extension, the list marks the current order instead
+		const items: SortItem[] = options.map(option => ({
+			label: `${option.order === current ? '$(check)' : '$(blank)'} ${option.label}`,
+			description: option.description,
+			order: option.order
+		}));
+
+		const quickPick = vscode.window.createQuickPick<SortItem>();
+		quickPick.placeholder = 'Sort notes by';
+		quickPick.items = items;
+		quickPick.activeItems = items.filter(item => item.order === current);
+		quickPick.onDidAccept(() => {
+			const picked = quickPick.activeItems[0];
+			quickPick.hide();
+			if (picked && picked.order !== current) {
+				// where the setting is in effect, the workspace settings when they set it
+				const target = config.inspect('sortOrder')?.workspaceValue !== undefined
+					? vscode.ConfigurationTarget.Workspace
+					: vscode.ConfigurationTarget.Global;
+				config.update('sortOrder', picked.order, target).then(undefined, err => {
+					console.error(err);
+					vscode.window.showErrorMessage('Failed to save the sort order.');
+				});
 			}
 		});
 		quickPick.onDidHide(() => quickPick.dispose());
