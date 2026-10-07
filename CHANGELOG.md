@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * the Notes view is refreshed after a note has been deleted, instead of before
 * deleting a folder relied on a package that was only installed as a development dependency
 * New Note and New Folder failed when a note was selected, they now create next to the note (#67, #76)
+* in a portable VS Code, a relative storage location is relative to the folder holding VS Code, so notes can be kept with it and opened from there (#38)
 
 ## [2.0.0] - 2025-03-26
 

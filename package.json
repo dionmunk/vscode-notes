@@ -39,7 +39,7 @@
 					"type": "string",
 					"default": "",
 					"scope": "machine-overridable",
-					"description": "Storage location for the Notes view, set in your user settings. A path starting with `~` is in your home folder. Not synced between machines. A value in a workspace's settings is used as that workspace's notes, use `notes.workspaceNotesLocation` for that instead."
+					"description": "Storage location for the Notes view, set in your user settings. A path starting with `~` is in your home folder. In a portable VS Code, a relative path is relative to the folder holding it, so the notes can travel with it. Not synced between machines. A value in a workspace's settings is used as that workspace's notes, use `notes.workspaceNotesLocation` for that instead."
 				},
 				"notes.workspaceNotesLocation": {
 					"type": "string",

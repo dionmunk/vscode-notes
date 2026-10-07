@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { getLocationState, resolveNotesLocation, toWorkspaceSetting } from '../../location';
+import { getLocationState, getPortableFolder, resolveNotesLocation, toWorkspaceSetting } from '../../location';
 
 suite('Notes Location', () => {
 	const home = path.join(path.sep, 'home', 'someone');
@@ -76,5 +76,18 @@ suite('Notes Location', () => {
 	test('a saved relative location resolves back to the folder that was picked', () => {
 		const picked = path.join(workspace, 'docs', 'notes');
 		assert.strictEqual(resolveNotesLocation(toWorkspaceSetting(picked, workspace), home, workspace), picked);
+	});
+
+	test('a portable VS Code is the folder holding its portable data folder', () => {
+		const install = path.join(path.sep, 'usb', 'VSCode');
+		assert.strictEqual(getPortableFolder({ VSCODE_PORTABLE: path.join(install, 'data') }), install);
+		assert.strictEqual(getPortableFolder({}), undefined);
+		assert.strictEqual(getPortableFolder({ VSCODE_PORTABLE: '' }), undefined);
+	});
+
+	test('a relative location in a portable VS Code is inside its folder (#38)', () => {
+		const install = path.join(path.sep, 'usb', 'VSCode');
+		const portable = getPortableFolder({ VSCODE_PORTABLE: path.join(install, 'data') });
+		assert.strictEqual(resolveNotesLocation('data/Notes', home, portable), path.join(install, 'data', 'Notes'));
 	});
 });

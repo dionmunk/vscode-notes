@@ -6,7 +6,7 @@ import * as path from 'path';
 import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
-import { getLocationState, resolveNotesLocation, toWorkspaceSetting } from './location';
+import { getLocationState, getPortableFolder, resolveNotesLocation, toWorkspaceSetting } from './location';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
@@ -231,11 +231,12 @@ export class Notes {
 		return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 	}
 
-	// get notes storage location, with ~ and a path relative to the workspace folder resolved
+	// get notes storage location, with ~ and a relative path resolved: against the folder holding a portable
+	// VS Code, so the notes travel with it, otherwise against the workspace folder
 	// only the user settings count: a notesLocation in workspace settings is that workspace's notes
 	static getNotesLocation(): string {
 		const notesLocation = vscode.workspace.getConfiguration('notes').inspect<string>('notesLocation')?.globalValue;
-		return resolveNotesLocation(notesLocation, os.homedir(), Notes.getWorkspaceFolder());
+		return resolveNotesLocation(notesLocation, os.homedir(), getPortableFolder() ?? Notes.getWorkspaceFolder());
 	}
 
 	// get the workspace notes location, '' without a workspace folder or a location
