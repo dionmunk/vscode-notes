@@ -38,7 +38,13 @@
 				"notes.notesLocation": {
 					"type": "string",
 					"default": "",
-					"description": "Storage location for notes. A path starting with `~` is in your home folder, and a relative path is relative to the first workspace folder."
+					"scope": "machine-overridable",
+					"description": "Storage location for the Notes view, set in your user settings. A path starting with `~` is in your home folder. Not synced between machines. A value in a workspace's settings is used as that workspace's notes, use `notes.workspaceNotesLocation` for that instead."
+				},
+				"notes.workspaceNotesLocation": {
+					"type": "string",
+					"default": "",
+					"description": "Storage location for the Workspace Notes view, usually set in the workspace settings. A relative path is relative to the first workspace folder, for example `.notes`. Set a relative path in your user settings to give every workspace that has that folder its own notes."
 				},
 				"notes.notesDefaultNoteExtension": {
 					"type": "string",
@@ -99,6 +105,30 @@
 				"icon": "$(new-folder)"
 			},
 			{
+				"command": "Notes.newNoteInNotes",
+				"title": "New Note",
+				"category": "Notes",
+				"icon": "$(new-file)"
+			},
+			{
+				"command": "Notes.newFolderInNotes",
+				"title": "New Folder",
+				"category": "Notes",
+				"icon": "$(new-folder)"
+			},
+			{
+				"command": "Notes.newNoteInWorkspaceNotes",
+				"title": "New Note",
+				"category": "Notes",
+				"icon": "$(new-file)"
+			},
+			{
+				"command": "Notes.newFolderInWorkspaceNotes",
+				"title": "New Folder",
+				"category": "Notes",
+				"icon": "$(new-folder)"
+			},
+			{
 				"command": "Notes.refreshNotes",
 				"title": "Refresh Notes",
 				"category": "Notes",
@@ -135,6 +165,31 @@
 				"command": "Notes.selectLocation",
 				"title": "Select Storage Location",
 				"category": "Notes"
+			},
+			{
+				"command": "Notes.revealWorkspaceNotesInOS",
+				"title": "Reveal in File Explorer",
+				"category": "Notes"
+			},
+			{
+				"command": "Notes.selectWorkspaceLocation",
+				"title": "Select Workspace Notes Location",
+				"category": "Notes"
+			},
+			{
+				"command": "Notes.setUpWorkspaceNotes",
+				"title": "Set Up Workspace Notes",
+				"category": "Notes"
+			},
+			{
+				"command": "Notes.createNotesFolder",
+				"title": "Create Notes Folder",
+				"category": "Notes"
+			},
+			{
+				"command": "Notes.createWorkspaceNotesFolder",
+				"title": "Create Workspace Notes Folder",
+				"category": "Notes"
 			}
 		],
 		"keybindings": [
@@ -152,12 +207,37 @@
 		"menus": {
 			"view/title": [
 				{
-					"command": "Notes.newNote",
+					"command": "Notes.newNoteInWorkspaceNotes",
+					"when": "view == workspaceNotes",
+					"group": "navigation@1"
+				},
+				{
+					"command": "Notes.newFolderInWorkspaceNotes",
+					"when": "view == workspaceNotes",
+					"group": "navigation@2"
+				},
+				{
+					"command": "Notes.refreshNotes",
+					"when": "view == workspaceNotes",
+					"group": "navigation@3"
+				},
+				{
+					"command": "Notes.revealWorkspaceNotesInOS",
+					"when": "view == workspaceNotes && (!remoteName || remoteName == wsl)",
+					"group": "1_open@1"
+				},
+				{
+					"command": "Notes.selectWorkspaceLocation",
+					"when": "view == workspaceNotes",
+					"group": "2_location@1"
+				},
+				{
+					"command": "Notes.newNoteInNotes",
 					"when": "view == notes",
 					"group": "navigation@1"
 				},
 				{
-					"command": "Notes.newFolder",
+					"command": "Notes.newFolderInNotes",
 					"when": "view == notes",
 					"group": "navigation@2"
 				},
@@ -175,46 +255,51 @@
 					"command": "Notes.revealInOS",
 					"when": "view == notes && (!remoteName || remoteName == wsl)",
 					"group": "1_open@1"
+				},
+				{
+					"command": "Notes.setUpWorkspaceNotes",
+					"when": "view == notes && workspaceFolderCount > 0 && !notes.workspaceNotesAvailable",
+					"group": "2_location@1"
 				}
 			],
 			"view/item/context": [
 				{
 					"command": "Notes.renameNote",
-					"when": "view == notes && viewItem == note",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == note",
 					"group": "1_modification@1"
 				},
 				{
 					"command": "Notes.deleteNote",
-					"when": "view == notes && viewItem == note",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == note",
 					"group": "1_modification@2"
 				},
 				{
 					"command": "Notes.renameFolder",
-					"when": "view == notes && viewItem == folder",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder",
 					"group": "1_modification@1"
 				},
 				{
 					"command": "Notes.deleteFolder",
-					"when": "view == notes && viewItem == folder",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder",
 					"group": "1_modification@2"
 				},
 				{
 					"command": "Notes.newNote",
-					"when": "view == notes && viewItem == folder",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder",
 					"group": "2_workspace@1"
 				},
 				{
 					"command": "Notes.newFolder",
-					"when": "view == notes && viewItem == folder",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder",
 					"group": "2_workspace@2"
 				},
 				{
-					"command": "Notes.newNote",
+					"command": "Notes.newNoteInNotes",
 					"when": "view == notes && !viewItem",
 					"group": "navigation@1"
 				},
 				{
-					"command": "Notes.newFolder",
+					"command": "Notes.newFolderInNotes",
 					"when": "view == notes && !viewItem",
 					"group": "navigation@2"
 				},
@@ -224,13 +309,28 @@
 					"group": "navigation@3"
 				},
 				{
+					"command": "Notes.newNoteInWorkspaceNotes",
+					"when": "view == workspaceNotes && !viewItem",
+					"group": "navigation@1"
+				},
+				{
+					"command": "Notes.newFolderInWorkspaceNotes",
+					"when": "view == workspaceNotes && !viewItem",
+					"group": "navigation@2"
+				},
+				{
+					"command": "Notes.refreshNotes",
+					"when": "view == workspaceNotes && !viewItem",
+					"group": "navigation@3"
+				},
+				{
 					"command": "Notes.revealInOS",
-					"when": "view == notes && viewItem == note && (!remoteName || remoteName == wsl)",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == note && (!remoteName || remoteName == wsl)",
 					"group": "3_open@1"
 				},
 				{
 					"command": "Notes.revealInOS",
-					"when": "view == notes && viewItem == folder && (!remoteName || remoteName == wsl)",
+					"when": "view =~ /^(notes|workspaceNotes)$/ && viewItem == folder && (!remoteName || remoteName == wsl)",
 					"group": "3_open@1"
 				}
 			],
@@ -238,6 +338,42 @@
 				{
 					"command": "Notes.revealInOS",
 					"when": "(!remoteName || remoteName == wsl)"
+				},
+				{
+					"command": "Notes.selectWorkspaceLocation",
+					"when": "workspaceFolderCount > 0"
+				},
+				{
+					"command": "Notes.setUpWorkspaceNotes",
+					"when": "workspaceFolderCount > 0 && !notes.workspaceNotesAvailable"
+				},
+				{
+					"command": "Notes.newNoteInNotes",
+					"when": "false"
+				},
+				{
+					"command": "Notes.newFolderInNotes",
+					"when": "false"
+				},
+				{
+					"command": "Notes.newNoteInWorkspaceNotes",
+					"when": "false"
+				},
+				{
+					"command": "Notes.newFolderInWorkspaceNotes",
+					"when": "false"
+				},
+				{
+					"command": "Notes.revealWorkspaceNotesInOS",
+					"when": "false"
+				},
+				{
+					"command": "Notes.createNotesFolder",
+					"when": "false"
+				},
+				{
+					"command": "Notes.createWorkspaceNotesFolder",
+					"when": "false"
 				}
 			]
 		},
@@ -253,6 +389,11 @@
 		"views": {
 			"vscode-notes": [
 				{
+					"id": "workspaceNotes",
+					"name": "Workspace Notes",
+					"when": "notes.workspaceNotesAvailable"
+				},
+				{
 					"id": "notes",
 					"name": "Notes"
 				}
@@ -266,13 +407,23 @@
 			},
 			{
 				"view": "notes",
-				"contents": "The notes storage location could not be found. Check the Storage Location setting, or select another folder.\n[Select Location](command:Notes.selectLocation)\n[Open Settings](command:Notes.setupNotes)",
+				"contents": "The notes storage location could not be found. Create the folder, or check the Storage Location setting and select another folder.\n[Create Folder](command:Notes.createNotesFolder)\n[Select Location](command:Notes.selectLocation)\n[Open Settings](command:Notes.setupNotes)",
 				"when": "notes.locationState == missing"
 			},
 			{
 				"view": "notes",
-				"contents": "You don't have any notes yet.\n[New Note](command:Notes.newNote)\n[New Folder](command:Notes.newFolder)",
+				"contents": "You don't have any notes yet.\n[New Note](command:Notes.newNoteInNotes)\n[New Folder](command:Notes.newFolderInNotes)",
 				"when": "notes.locationState == empty"
+			},
+			{
+				"view": "workspaceNotes",
+				"contents": "The notes folder of this workspace could not be found.\n[Create Folder](command:Notes.createWorkspaceNotesFolder)\n[Select Location](command:Notes.selectWorkspaceLocation)",
+				"when": "notes.workspaceLocationState == missing"
+			},
+			{
+				"view": "workspaceNotes",
+				"contents": "This workspace doesn't have any notes yet.\n[New Note](command:Notes.newNoteInWorkspaceNotes)\n[New Folder](command:Notes.newFolderInWorkspaceNotes)",
+				"when": "notes.workspaceLocationState == empty"
 			}
 		]
 	},

@@ -22,11 +22,24 @@ The extension can be accessed using the Notes icon that is placed in the Activit
 
 Notes will prompt you for a storage location the first time you access the extension from the Activity Bar or through the Command Pallet. If you would like to change the storage location, later on, you can access the Notes extension settings by clicking on the gear icon in Notes or from the Command Pallet. After you've selected a storage location, you can access your notes from the Notes icon in the Activity Bar, or through the Command Pallet.
 
+## Workspace Notes
+
+Notes for a single project can live with that project. When the open workspace has notes, a **Workspace Notes** section is shown above **Notes**, the same way the Explorer shows Outline and Timeline below the files. Notes keeps showing the notes from your user settings in every window.
+
+* run **Notes: Set Up Workspace Notes** (also in the `...` menu of Notes) to create a `.notes` folder in the workspace and use it for its notes, or **Notes: Select Workspace Notes Location** to pick another folder
+* the location is saved in the workspace settings, relative to the workspace folder when it is inside it, so it works for anyone who opens the project
+* to give every project that has a `.notes` folder its own notes, set `notes.workspaceNotesLocation` to `.notes` in your user settings instead
+* the New Note and New Folder buttons of each section create in that section, and **Notes: New Note** (`Alt+N`) asks which one to use when both are available
+* add `.notes` to the project's `.gitignore` if the notes are only for you
+
+A multi-root workspace uses the first folder for relative locations.
+
 ## Extension Settings
 
 This extension contributes the following settings:
 
-* `Notes.notesLocation`: location where notes are stored
+* `Notes.notesLocation`: location of the notes in the Notes section, set in your user settings and not synced between machines
+* `Notes.workspaceNotesLocation`: location of the notes in the Workspace Notes section, relative to the workspace folder or a full path
 * `Notes.notesDefaultNotesExtension`: extension used for new notes
 * `Notes.notesExtensions`: list of extensions recognized as notes or '*' for all extensions
 * `Notes.watchExternalChanges`: update the Notes view when notes are added, renamed or removed outside of VS Code
