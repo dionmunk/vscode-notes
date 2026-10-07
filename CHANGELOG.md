@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * the storage location can start with `~` for your home folder, or be relative to the workspace folder
 * the Notes view updates on its own when notes are added, renamed or removed outside of the window, by a sync client or another editor for example (`notes.watchExternalChanges`, `notes.watchIntervalSeconds`)
 * `Reveal in File Explorer` for a note, a folder or the storage location, including from WSL
+* a Workspace Notes section above Notes for the notes of the open workspace, shown when the workspace has notes (#4), with the new `notes.workspaceNotesLocation` setting and the `Notes: Set Up Workspace Notes` and `Notes: Select Workspace Notes Location` commands
+* `Notes: New Note` and `Notes: New Folder` ask whether to use Workspace Notes or Notes when both are available
+* a Create Folder button when a storage location is set but its folder doesn't exist
 
 ### Changed
 
 * a new storage location or list of extensions is used right away, a window reload is no longer required
 * the Notes view explains why it is empty: no storage location, a storage location that can't be found, or no notes yet
+* `notes.notesLocation` is no longer synced between machines (#26), and the Notes section only uses the value in your user settings
+* a `notes.notesLocation` set in a workspace's settings is now shown as that workspace's Workspace Notes, and is replaced by `notes.workspaceNotesLocation` when a workspace notes location is selected
+* `Notes: List Notes` lists the notes of both sections and only lists files
 
 ### Fixed
 
@@ -27,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * the Notes view is refreshed after a note or folder has been created, instead of before
 * the Notes view is refreshed after a note has been deleted, instead of before
 * deleting a folder relied on a package that was only installed as a development dependency
+* New Note and New Folder failed when a note was selected, they now create next to the note (#67, #76)
 
 ## [2.0.0] - 2025-03-26
 

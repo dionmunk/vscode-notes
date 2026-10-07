@@ -17,7 +17,9 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
     // constructor for NotesViewProvider
     constructor(
         private notesLocation: string,
-        private notesExtensions: string) {
+        private notesExtensions: string,
+        // context key for the state of this tree's location, which picks the welcome content of its view
+        private stateContextKey: string = 'notes.locationState') {
     };
 
     // initialize NotesViewProvider
@@ -73,11 +75,16 @@ export class NotesViewProvider implements vscode.TreeDataProvider<Note> {
         return false;
     }
 
-    // set the 'notes.locationState' context key, which picks the welcome content shown in an empty view
+    // the location this tree shows
+    get location(): string {
+        return this.notesLocation;
+    }
+
+    // set the location state context key, which picks the welcome content shown in an empty view
     private setLocationState(state: LocationState): void {
         if (state !== this.locationState) {
             this.locationState = state;
-            vscode.commands.executeCommand('setContext', 'notes.locationState', state);
+            vscode.commands.executeCommand('setContext', this.stateContextKey, state);
         }
     }
 

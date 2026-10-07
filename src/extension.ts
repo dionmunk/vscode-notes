@@ -6,47 +6,91 @@ import * as path from 'path';
 import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
-import { getLocationState, resolveNotesLocation } from './location';
+import { getLocationState, resolveNotesLocation, toWorkspaceSetting } from './location';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
+
+// which storage location: Notes, from the user settings, or Workspace Notes
+type NotesKind = 'notes' | 'workspace';
+
+// what the commands refresh after they change notes on disk
+interface Refreshable {
+	refresh(): void;
+}
 
 // activate extension
 export function activate(context: vscode.ExtensionContext) {
 
 	console.log('"vscode-notes" is active.');
 
-	// get Notes configuration
-	let notesTree = new NotesViewProvider(Notes.getNotesLocation(), String(Notes.getNotesExtensions()));
+	// Notes: the location in your user settings, the same in every window
+	let notesTree = new NotesViewProvider('', String(Notes.getNotesExtensions()));
 	let notesView = vscode.window.createTreeView('notes', { treeDataProvider: notesTree.init() });
+	// Workspace Notes: the notes of the open workspace, shown above Notes when it has some
+	let workspaceTree = new NotesViewProvider('', String(Notes.getNotesExtensions()), 'notes.workspaceLocationState');
+	let workspaceView = vscode.window.createTreeView('workspaceNotes', { treeDataProvider: workspaceTree.init() });
 
-	// keep the tree in sync with changes made outside of this window
+	// keep both trees in sync with changes made outside of this window
 	let notesWatcher = new NotesWatcher(notesTree, notesView);
-	notesWatcher.restart(Notes.getNotesLocation());
-	context.subscriptions.push(notesView, notesWatcher);
+	let workspaceWatcher = new NotesWatcher(workspaceTree, workspaceView);
+	context.subscriptions.push(notesView, workspaceView, notesWatcher, workspaceWatcher);
 
-	// update the tree and the watcher with the current storage location and extensions
-	const updateTree = () => {
-		notesTree.update(Notes.getNotesLocation(), String(Notes.getNotesExtensions()));
-		notesWatcher.restart(Notes.getNotesLocation());
+	// a note or folder can be in either tree, so commands that change one refresh both
+	const trees: Refreshable = {
+		refresh: () => {
+			notesTree.refresh();
+			workspaceTree.refresh();
+		}
 	};
 
-	// Listen for configuration changes
+	// point the trees and their watchers at the current locations, force when a setting they use changed
+	const updateTrees = (force: boolean) => {
+		const notesExtensions = String(Notes.getNotesExtensions());
+
+		const notesLocation = Notes.getNotesLocation();
+		if (force || notesLocation !== notesTree.location) {
+			notesTree.update(notesLocation, notesExtensions);
+			notesWatcher.restart(notesLocation);
+		}
+
+		// the Workspace Notes view is only shown when the workspace has notes
+		const available = Notes.isWorkspaceNotesAvailable();
+		vscode.commands.executeCommand('setContext', 'notes.workspaceNotesAvailable', available);
+		workspaceView.description = available ? vscode.workspace.name : undefined;
+
+		const workspaceLocation = available ? Notes.getWorkspaceNotesLocation() : '';
+		if (force || workspaceLocation !== workspaceTree.location) {
+			workspaceTree.update(workspaceLocation, notesExtensions);
+			workspaceWatcher.restart(workspaceLocation);
+		}
+	};
+	updateTrees(true);
+
 	context.subscriptions.push(
+		// Listen for configuration changes
 		vscode.workspace.onDidChangeConfiguration(e => {
 			// apply a new storage location or list of extensions right away
-			if (e.affectsConfiguration('notes.notesLocation') || e.affectsConfiguration('notes.notesExtensions')) {
-				updateTree();
+			if (e.affectsConfiguration('notes.notesLocation')
+				|| e.affectsConfiguration('notes.workspaceNotesLocation')
+				|| e.affectsConfiguration('notes.notesExtensions')) {
+				updateTrees(true);
 			}
 			// apply new watch settings
 			else if (e.affectsConfiguration('notes.watchExternalChanges') || e.affectsConfiguration('notes.watchIntervalSeconds')) {
-				notesWatcher.restart(Notes.getNotesLocation());
+				notesWatcher.restart(notesTree.location);
+				workspaceWatcher.restart(workspaceTree.location);
+			}
+		}),
+		// relative locations depend on the workspace folder
+		vscode.workspace.onDidChangeWorkspaceFolders(() => updateTrees(true)),
+		// a workspace notes folder may have been created while the window was in the background
+		vscode.window.onDidChangeWindowState(state => {
+			if (state.focused) {
+				updateTrees(false);
 			}
 		})
 	);
-
-	// a relative storage location depends on the workspace folder
-	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateTree));
 
 	/*
 	* register commands
@@ -54,13 +98,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// delete note
 	let deleteNoteDisposable = vscode.commands.registerCommand('Notes.deleteNote', (note: Note) => {
-		Notes.deleteNote(note, notesTree);
+		Notes.deleteNote(note, trees);
 	});
 	context.subscriptions.push(deleteNoteDisposable);
 
 	// delete folder
 	let deleteFolderDisposable = vscode.commands.registerCommand('Notes.deleteFolder', (folder: Note) => {
-		Notes.deleteFolder(folder, notesTree);
+		Notes.deleteFolder(folder, trees);
 	});
 	context.subscriptions.push(deleteFolderDisposable);
 
@@ -70,17 +114,29 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(listNotesDisposable);
 
-	// new note
-	let newNoteDisposable = vscode.commands.registerCommand('Notes.newNote', (folder?: Note) => {
-		Notes.newNote(notesTree, folder);
+	// new note, in the folder of the given item, or asking where when the workspace has notes too
+	let newNoteDisposable = vscode.commands.registerCommand('Notes.newNote', (item?: Note) => {
+		Notes.newNote(trees, undefined, item);
 	});
 	context.subscriptions.push(newNoteDisposable);
 
-	// new folder
-	let newFolderDisposable = vscode.commands.registerCommand('Notes.newFolder', (parentFolder?: Note) => {
-		Notes.newFolder(notesTree, parentFolder);
+	// new folder, in the folder of the given item, or asking where when the workspace has notes too
+	let newFolderDisposable = vscode.commands.registerCommand('Notes.newFolder', (item?: Note) => {
+		Notes.newFolder(trees, undefined, item);
 	});
 	context.subscriptions.push(newFolderDisposable);
+
+	// new note and new folder from the title bar and welcome content of each view
+	for (const [command, kind, create] of [
+		['Notes.newNoteInNotes', 'notes', Notes.newNote],
+		['Notes.newFolderInNotes', 'notes', Notes.newFolder],
+		['Notes.newNoteInWorkspaceNotes', 'workspace', Notes.newNote],
+		['Notes.newFolderInWorkspaceNotes', 'workspace', Notes.newFolder],
+	] as [string, NotesKind, typeof Notes.newNote][]) {
+		context.subscriptions.push(vscode.commands.registerCommand(command, (item?: Note) => {
+			create(trees, kind, item);
+		}));
+	}
 
 	// open note
 	let openNoteDisposable = vscode.commands.registerCommand('Notes.openNote', (note: Note | string) => {
@@ -90,19 +146,19 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// refresh notes
 	let refreshNotesDisposable = vscode.commands.registerCommand('Notes.refreshNotes', () => {
-		Notes.refreshNotes(notesTree);
+		updateTrees(true);
 	});
 	context.subscriptions.push(refreshNotesDisposable);
 
 	// rename note
 	let renameNoteDisposable = vscode.commands.registerCommand('Notes.renameNote', (note: Note) => {
-		Notes.renameNote(note, notesTree);
+		Notes.renameNote(note, trees);
 	});
 	context.subscriptions.push(renameNoteDisposable);
 
 	// rename folder
 	let renameFolderDisposable = vscode.commands.registerCommand('Notes.renameFolder', (folder: Note) => {
-		Notes.renameFolder(folder, notesTree);
+		Notes.renameFolder(folder, trees);
 	});
 	context.subscriptions.push(renameFolderDisposable);
 
@@ -118,11 +174,39 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(selectLocationDisposable);
 
+	// select workspace notes location
+	let selectWorkspaceLocationDisposable = vscode.commands.registerCommand('Notes.selectWorkspaceLocation', () => {
+		Notes.selectWorkspaceLocation();
+	});
+	context.subscriptions.push(selectWorkspaceLocationDisposable);
+
+	// set up workspace notes in .notes
+	let setUpWorkspaceNotesDisposable = vscode.commands.registerCommand('Notes.setUpWorkspaceNotes', () => {
+		Notes.setUpWorkspaceNotes().then(() => updateTrees(true));
+	});
+	context.subscriptions.push(setUpWorkspaceNotesDisposable);
+
+	// create a storage location that is set but does not exist yet
+	let createNotesFolderDisposable = vscode.commands.registerCommand('Notes.createNotesFolder', () => {
+		Notes.createLocationFolder('notes').then(() => updateTrees(true));
+	});
+	context.subscriptions.push(createNotesFolderDisposable);
+
+	let createWorkspaceNotesFolderDisposable = vscode.commands.registerCommand('Notes.createWorkspaceNotesFolder', () => {
+		Notes.createLocationFolder('workspace').then(() => updateTrees(true));
+	});
+	context.subscriptions.push(createWorkspaceNotesFolderDisposable);
+
 	// reveal in the file explorer of the operating system
 	let revealInOSDisposable = vscode.commands.registerCommand('Notes.revealInOS', (item?: Note) => {
-		Notes.revealInOS(item);
+		Notes.revealInOS(item, 'notes');
 	});
 	context.subscriptions.push(revealInOSDisposable);
+
+	let revealWorkspaceNotesInOSDisposable = vscode.commands.registerCommand('Notes.revealWorkspaceNotesInOS', (item?: Note) => {
+		Notes.revealInOS(item, 'workspace');
+	});
+	context.subscriptions.push(revealWorkspaceNotesInOSDisposable);
 
 };
 
@@ -142,29 +226,106 @@ export class Notes {
 		this.settings = vscode.workspace.getConfiguration(extId);
 	}
 
-	// get notes storage location, with ~ and a path relative to the workspace folder resolved
-	static getNotesLocation(): string {
-		const notesLocation = vscode.workspace.getConfiguration('notes').get<string>('notesLocation');
-		const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-		return resolveNotesLocation(notesLocation, os.homedir(), workspaceFolder);
+	// the first workspace folder, which relative locations are resolved against
+	static getWorkspaceFolder(): string | undefined {
+		return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 	}
 
-	// get the notes storage location if it is a usable folder, otherwise tell the user and return undefined
-	static requireNotesLocation(): string | undefined {
-		const notesLocation = Notes.getNotesLocation();
-		if (getLocationState(notesLocation) === 'ready') {
-			return notesLocation;
+	// get notes storage location, with ~ and a path relative to the workspace folder resolved
+	// only the user settings count: a notesLocation in workspace settings is that workspace's notes
+	static getNotesLocation(): string {
+		const notesLocation = vscode.workspace.getConfiguration('notes').inspect<string>('notesLocation')?.globalValue;
+		return resolveNotesLocation(notesLocation, os.homedir(), Notes.getWorkspaceFolder());
+	}
+
+	// get the workspace notes location, '' without a workspace folder or a location
+	// a notesLocation set in the workspace settings, from before workspace notes existed, is used too
+	static getWorkspaceNotesLocation(): string {
+		const workspaceFolder = Notes.getWorkspaceFolder();
+		if (!workspaceFolder) {
+			return '';
+		}
+		const config = vscode.workspace.getConfiguration('notes');
+		const location = config.get<string>('workspaceNotesLocation') || config.inspect<string>('notesLocation')?.workspaceValue;
+		return resolveNotesLocation(location, os.homedir(), workspaceFolder);
+	}
+
+	// workspace notes are shown when their folder exists, or when the workspace settings name one
+	// a relative location in the user settings applies to every workspace, those without the folder show nothing
+	static isWorkspaceNotesAvailable(): boolean {
+		const location = Notes.getWorkspaceNotesLocation();
+		if (!location) {
+			return false;
+		}
+		if (getLocationState(location) === 'ready') {
+			return true;
+		}
+		const config = vscode.workspace.getConfiguration('notes');
+		return config.inspect('workspaceNotesLocation')?.workspaceValue !== undefined
+			|| config.inspect('notesLocation')?.workspaceValue !== undefined;
+	}
+
+	static getLocation(kind: NotesKind): string {
+		return kind === 'workspace' ? Notes.getWorkspaceNotesLocation() : Notes.getNotesLocation();
+	}
+
+	// get a storage location if it is a usable folder, otherwise tell the user how to fix it and return undefined
+	static requireLocation(kind: NotesKind): string | undefined {
+		const location = Notes.getLocation(kind);
+		if (getLocationState(location) === 'ready') {
+			return location;
 		}
 
-		const message = notesLocation
-			? `The notes storage location could not be found: ${notesLocation}`
-			: 'You need to select a location to store your notes.';
-		vscode.window.showErrorMessage(message, 'Select Location').then(selectedAction => {
-			if (selectedAction === 'Select Location') {
-				Notes.selectLocation();
-			}
-		});
+		const workspace = kind === 'workspace';
+		if (location) {
+			const message = workspace
+				? `The workspace notes location could not be found: ${location}`
+				: `The notes storage location could not be found: ${location}`;
+			vscode.window.showErrorMessage(message, 'Create Folder', 'Select Location').then(selectedAction => {
+				if (selectedAction === 'Create Folder') {
+					vscode.commands.executeCommand(workspace ? 'Notes.createWorkspaceNotesFolder' : 'Notes.createNotesFolder');
+				}
+				else if (selectedAction === 'Select Location') {
+					workspace ? Notes.selectWorkspaceLocation() : Notes.selectLocation();
+				}
+			});
+		}
+		else if (workspace) {
+			vscode.window.showErrorMessage('This workspace doesn\'t have a notes location yet.', 'Set Up Workspace Notes').then(selectedAction => {
+				if (selectedAction === 'Set Up Workspace Notes') {
+					vscode.commands.executeCommand('Notes.setUpWorkspaceNotes');
+				}
+			});
+		}
+		else {
+			vscode.window.showErrorMessage('You need to select a location to store your notes.', 'Select Location').then(selectedAction => {
+				if (selectedAction === 'Select Location') {
+					Notes.selectLocation();
+				}
+			});
+		}
 		return undefined;
+	}
+
+	// ask whether a new note goes in Workspace Notes or Notes, when the workspace has notes
+	static async pickKind(): Promise<NotesKind | undefined> {
+		if (!Notes.isWorkspaceNotesAvailable()) {
+			return 'notes';
+		}
+		const picked = await vscode.window.showQuickPick([
+			{ label: 'Workspace Notes', description: vscode.workspace.name, target: 'workspace' as NotesKind },
+			{ label: 'Notes', description: 'all workspaces', target: 'notes' as NotesKind },
+		], { placeHolder: 'Where should it go?' });
+		return picked?.target;
+	}
+
+	// the folder to create a note or folder in: next to the given item, or at the root of a storage location
+	static async getTargetFolder(kind?: NotesKind, item?: Note): Promise<string | undefined> {
+		if (item instanceof Note) {
+			return item.isFolder ? item.fullPath : item.location;
+		}
+		const target = kind ?? await Notes.pickKind();
+		return target ? Notes.requireLocation(target) : undefined;
 	}
 	// get notes default extension
 	static getNotesDefaultNoteExtension() {
@@ -176,7 +337,7 @@ export class Notes {
 	}
 
 	// delete note
-	static deleteNote(note: Note, tree: NotesViewProvider): void {
+	static deleteNote(note: Note, tree: Refreshable): void {
 		// prompt user for confirmation
 		vscode.window.showWarningMessage(`Are you sure you want to delete '${note.name}'? This action is permanent and can not be reversed.`, 'Yes', 'No').then(result => {
 			// if the user answers Yes
@@ -199,7 +360,7 @@ export class Notes {
 	}
 
 	// delete folder
-	static deleteFolder(folder: Note, tree: NotesViewProvider): void {
+	static deleteFolder(folder: Note, tree: Refreshable): void {
 		if (!folder.isFolder) {
 			vscode.window.showErrorMessage('Selected item is not a folder.');
 			return;
@@ -230,34 +391,49 @@ export class Notes {
 		});
 	}
 
-	// list notes
-	static listNotes(): void {
-		const notesLocation = Notes.requireNotesLocation();
-		if (!notesLocation) {
+	// list notes, from Workspace Notes and Notes
+	static async listNotes(): Promise<void> {
+		const sources = [{ label: 'Notes', location: Notes.getNotesLocation() }];
+		if (Notes.isWorkspaceNotesAvailable()) {
+			sources.unshift({ label: 'Workspace Notes', location: Notes.getWorkspaceNotesLocation() });
+		}
+		const ready = sources.filter(source => getLocationState(source.location) === 'ready');
+		if (!ready.length) {
+			Notes.requireLocation('notes');
 			return;
 		}
-		let notesExtensions = String(Notes.getNotesExtensions());
-		// read files in storage location
-		fs.readdir(String(notesLocation), (err, files) => {
-			if (err) {
+
+		// read the notes in each storage location, the label tells them apart when there are two
+		const items: (vscode.QuickPickItem & { filePath: string })[] = [];
+		for (const source of ready) {
+			try {
+				for (const entry of await fs.promises.readdir(source.location, { withFileTypes: true })) {
+					if (entry.isFile() && !entry.name.startsWith('.')) {
+						items.push({
+							label: entry.name,
+							description: ready.length > 1 ? source.label : undefined,
+							filePath: path.join(source.location, entry.name)
+						});
+					}
+				}
+			} catch (err) {
 				// report error
 				console.error(err);
-				return vscode.window.showErrorMessage('Failed to read the notes folder.');
+				vscode.window.showErrorMessage(`Failed to read ${source.location}.`);
 			}
-			else {
-				// show list of notes
-				vscode.window.showQuickPick(files).then(file => {
-					// open selected note
-					vscode.window.showTextDocument(vscode.Uri.file(path.join(String(notesLocation), String(file))));
-				});
-			}
-		});
+		}
+
+		// show list of notes and open the selected one
+		const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Open a note' });
+		if (picked) {
+			vscode.window.showTextDocument(vscode.Uri.file(picked.filePath));
+		}
 	}
 
 	// new note
-	static newNote(tree: NotesViewProvider, folder?: Note): void {
+	static async newNote(tree: Refreshable, kind?: NotesKind, item?: Note): Promise<void> {
 		// Determine the location where the note should be created
-		const notesLocation = folder ? path.join(folder.location, folder.name) : Notes.requireNotesLocation();
+		const notesLocation = await Notes.getTargetFolder(kind, item);
 		if (!notesLocation) {
 			return;
 		}
@@ -310,9 +486,9 @@ export class Notes {
 	}
 
 	// new folder
-	static newFolder(tree: NotesViewProvider, parentFolder?: Note): void {
+	static async newFolder(tree: Refreshable, kind?: NotesKind, item?: Note): Promise<void> {
 		// Determine the location where the folder should be created
-		const parentLocation = parentFolder ? path.join(parentFolder.location, parentFolder.name) : Notes.requireNotesLocation();
+		const parentLocation = await Notes.getTargetFolder(kind, item);
 		if (!parentLocation) {
 			return;
 		}
@@ -379,9 +555,9 @@ export class Notes {
 		vscode.window.showTextDocument(vscode.Uri.file(filePath));
 	}
 
-	// reveal a note or folder in the file explorer, or the storage location when no item is given
-	static revealInOS(item?: Note): void {
-		const target = item ? item.fullPath : Notes.requireNotesLocation();
+	// reveal a note or folder in the file explorer, or a storage location when no item is given
+	static revealInOS(item: Note | undefined, kind: NotesKind): void {
+		const target = item instanceof Note ? item.fullPath : Notes.requireLocation(kind);
 		if (!target) {
 			return;
 		}
@@ -416,7 +592,7 @@ export class Notes {
 	}
 
 	// rename note
-	static renameNote(note: Note, tree: NotesViewProvider): void {
+	static renameNote(note: Note, tree: Refreshable): void {
 		// If it's a folder, don't try to rename it as a note
 		if (note.isFolder) {
 			return;
@@ -474,7 +650,7 @@ export class Notes {
 	}
 
 	// rename folder
-	static renameFolder(folder: Note, tree: NotesViewProvider): void {
+	static renameFolder(folder: Note, tree: Refreshable): void {
 		// If it's not a folder, don't try to rename it as a folder
 		if (!folder.isFolder) {
 			return;
@@ -539,18 +715,89 @@ export class Notes {
 			if (fileUri && fileUri[0]) {
 				// get Notes configuration
 				let notesConfiguration = vscode.workspace.getConfiguration('notes');
-				// a location set in the workspace settings overrides the user settings, so update it there
-				// otherwise the selected location would be saved but never used
-				const inspected = notesConfiguration.inspect<string>('notesLocation');
-				const target = inspected?.workspaceValue !== undefined
-					? vscode.ConfigurationTarget.Workspace
-					: vscode.ConfigurationTarget.Global;
-				// update Notes configuration with selected location, the tree picks up the change on its own
-				notesConfiguration.update('notesLocation', path.normalize(fileUri[0].fsPath), target).then(undefined, err => {
+				// update the user settings with the selected location, the tree picks up the change on its own
+				notesConfiguration.update('notesLocation', path.normalize(fileUri[0].fsPath), vscode.ConfigurationTarget.Global).then(undefined, err => {
 					console.error(err);
 					vscode.window.showErrorMessage('Failed to save the notes storage location.');
 				});
 			}
 		});
+	}
+
+	// select a folder for this workspace's notes
+	static selectWorkspaceLocation(): void {
+		const workspaceFolder = Notes.getWorkspaceFolder();
+		if (!workspaceFolder) {
+			vscode.window.showWarningMessage('Open a folder to use workspace notes.');
+			return;
+		}
+		const workspaceLocation = Notes.getWorkspaceNotesLocation();
+		let openDialogOptions: vscode.OpenDialogOptions = {
+			canSelectFiles: false,
+			canSelectFolders: true,
+			canSelectMany: false,
+			openLabel: 'Select',
+			// start in the current location if it exists, otherwise in the workspace folder
+			defaultUri: vscode.Uri.file(getLocationState(workspaceLocation) === 'ready' ? workspaceLocation : workspaceFolder)
+		};
+
+		vscode.window.showOpenDialog(openDialogOptions).then(fileUri => {
+			if (fileUri && fileUri[0]) {
+				Notes.saveWorkspaceLocation(toWorkspaceSetting(fileUri[0].fsPath, workspaceFolder));
+			}
+		});
+	}
+
+	// save the workspace notes location in the workspace settings
+	// a notesLocation in the workspace settings, from before workspace notes existed, is replaced by it
+	static async saveWorkspaceLocation(location: string): Promise<void> {
+		const config = vscode.workspace.getConfiguration('notes');
+		try {
+			await config.update('workspaceNotesLocation', location, vscode.ConfigurationTarget.Workspace);
+			if (config.inspect<string>('notesLocation')?.workspaceValue !== undefined) {
+				await config.update('notesLocation', undefined, vscode.ConfigurationTarget.Workspace);
+			}
+		} catch (err) {
+			console.error(err);
+			vscode.window.showErrorMessage('Failed to save the workspace notes location.');
+		}
+	}
+
+	// give this workspace notes in .notes, or create the folder a workspace notes location already names
+	static async setUpWorkspaceNotes(): Promise<void> {
+		const workspaceFolder = Notes.getWorkspaceFolder();
+		if (!workspaceFolder) {
+			vscode.window.showWarningMessage('Open a folder to use workspace notes.');
+			return;
+		}
+
+		const configured = Notes.getWorkspaceNotesLocation();
+		const location = configured || path.join(workspaceFolder, '.notes');
+		try {
+			await fs.promises.mkdir(location, { recursive: true });
+		} catch (err) {
+			console.error(err);
+			vscode.window.showErrorMessage(`Failed to create ${location}.`);
+			return;
+		}
+		if (!configured) {
+			await Notes.saveWorkspaceLocation('.notes');
+		}
+		vscode.commands.executeCommand('workspaceNotes.focus');
+	}
+
+	// create a storage location that is set but does not exist yet
+	static async createLocationFolder(kind: NotesKind): Promise<void> {
+		const location = Notes.getLocation(kind);
+		// a relative location without a workspace folder has nowhere to go
+		if (!location || !path.isAbsolute(location)) {
+			return;
+		}
+		try {
+			await fs.promises.mkdir(location, { recursive: true });
+		} catch (err) {
+			console.error(err);
+			vscode.window.showErrorMessage(`Failed to create ${location}.`);
+		}
 	}
 }

@@ -47,3 +47,17 @@ export function getLocationState(location: string): LocationState {
 		return 'missing';
 	}
 }
+
+// the value saved for a folder picked as the workspace notes location: relative to the workspace folder
+// when it is inside it, so the setting works for anyone who clones the project, otherwise the full path
+export function toWorkspaceSetting(folder: string, workspaceDir: string): string {
+	const relative = path.relative(workspaceDir, folder);
+	if (relative === '') {
+		return '.';
+	}
+	if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
+		return path.normalize(folder);
+	}
+	// forward slashes work on every platform, and the setting may be shared through the repository
+	return relative.split(path.sep).join('/');
+}

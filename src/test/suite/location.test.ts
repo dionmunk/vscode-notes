@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { getLocationState, resolveNotesLocation } from '../../location';
+import { getLocationState, resolveNotesLocation, toWorkspaceSetting } from '../../location';
 
 suite('Notes Location', () => {
 	const home = path.join(path.sep, 'home', 'someone');
@@ -55,5 +55,26 @@ suite('Notes Location', () => {
 		} finally {
 			fs.rmSync(dir, { recursive: true, force: true });
 		}
+	});
+
+	test('a workspace notes folder inside the workspace is saved relative to it', () => {
+		assert.strictEqual(toWorkspaceSetting(path.join(workspace, '.notes'), workspace), '.notes');
+		assert.strictEqual(toWorkspaceSetting(path.join(workspace, 'docs', 'notes'), workspace), 'docs/notes');
+		assert.strictEqual(toWorkspaceSetting(workspace, workspace), '.');
+	});
+
+	test('a workspace notes folder outside the workspace is saved as a full path', () => {
+		const outside = path.join(path.sep, 'projects', 'shared-notes');
+		assert.strictEqual(toWorkspaceSetting(outside, workspace), outside);
+		assert.strictEqual(toWorkspaceSetting(path.dirname(workspace), workspace), path.dirname(workspace));
+	});
+
+	test('a folder named like a parent reference is still inside the workspace', () => {
+		assert.strictEqual(toWorkspaceSetting(path.join(workspace, '..notes'), workspace), '..notes');
+	});
+
+	test('a saved relative location resolves back to the folder that was picked', () => {
+		const picked = path.join(workspace, 'docs', 'notes');
+		assert.strictEqual(resolveNotesLocation(toWorkspaceSetting(picked, workspace), home, workspace), picked);
 	});
 });
