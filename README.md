@@ -45,6 +45,7 @@ This extension contributes the following settings:
 * `notes.notesLocation`: location of the notes in the Notes section, set in your user settings and not synced between machines. In a [portable](https://code.visualstudio.com/docs/editor/portable) VS Code, a relative path is relative to the folder holding VS Code, so the notes can travel with it (for example `data/Notes` on Windows and Linux)
 * `notes.workspaceNotesLocation`: location of the notes in the Workspace Notes section, relative to the workspace folder or a full path
 * `notes.notesDefaultNoteExtension`: extension used for new notes that don't have one in their name
+* `notes.newNoteName`: name filled in when you create a note, using VS Code's [snippet date and time variables](https://code.visualstudio.com/docs/editing/userdefinedsnippets#_variables), for example `${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE} ${CURRENT_HOUR}-${CURRENT_MINUTE}`; press `Enter` to use it or type a name instead
 * `notes.sortOrder`: how notes and folders are sorted, by name (A to Z or Z to A) or newest first by date modified or created, also set with the Sort By button at the top of each section
 * `notes.notesExtensions`: list of extensions recognized as notes or '*' for all extensions
 * `notes.watchExternalChanges`: update the Notes view when notes are added, renamed or removed outside of VS Code

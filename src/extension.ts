@@ -8,6 +8,7 @@ import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
 import { getLanguageExtensions, isMarkdownFile, resetLanguageExtensions } from './languages';
 import { RecentNotes } from './recentNotes';
+import { expandNameTemplate } from './noteName';
 import { compareEntries, readSortEntry, SortOrder, toSortOrder } from './sortOrder';
 import { MovableItem, NotesDragAndDrop } from './notesDragAndDrop';
 import { getLocationState, getMoveDestination, getPortableFolder, isInside, isNoteName, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from './location';
@@ -583,10 +584,13 @@ export class Notes {
 		if (!notesLocation) {
 			return;
 		}
-		// prompt user for a new note name
+		// prompt user for a new note name, filled in from the notes.newNoteName template when there is one,
+		// selected so Enter accepts it and typing replaces it
+		const suggested = expandNameTemplate(String(vscode.workspace.getConfiguration('notes').get('newNoteName') ?? ''), new Date(), vscode.env.language);
 		const noteName = await vscode.window.showInputBox({
 			prompt: 'Note name?',
-			value: '',
+			value: suggested,
+			valueSelection: [0, suggested.length],
 		});
 		if (noteName) {
 			await Notes.createNote(notesLocation, noteName, tree);
