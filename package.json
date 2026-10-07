@@ -51,6 +51,11 @@
 					"default": "md",
 					"description": "The default extension to use for new notes. (do not include the dot)"
 				},
+				"notes.newNoteName": {
+					"type": "string",
+					"default": "",
+					"markdownDescription": "Name filled in when you create a note, so `Enter` accepts it and typing replaces it. Leave it empty to start with an empty name. Use VS Code's snippet date and time variables, for example `${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE} ${CURRENT_HOUR}-${CURRENT_MINUTE}` for `2026-10-07 14-35`. Avoid `:`, which file names can't contain on Windows."
+				},
 				"notes.notesExtensions": {
 					"type": "string",
 					"default": "*",
