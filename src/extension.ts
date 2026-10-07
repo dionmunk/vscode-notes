@@ -7,6 +7,7 @@ import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
 import { getLanguageExtensions, isMarkdownFile, resetLanguageExtensions } from './languages';
+import { RecentNotes } from './recentNotes';
 import { MovableItem, NotesDragAndDrop } from './notesDragAndDrop';
 import { getLocationState, getMoveDestination, getPortableFolder, isInside, isNoteName, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from './location';
 
@@ -120,11 +121,33 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(deleteFolderDisposable);
 
+	// remember the notes opened, from Notes or anywhere else, for List Notes
+	const recentNotes = new RecentNotes(context.globalState);
+	const rememberActiveNote = () => {
+		const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+		const uri = input instanceof vscode.TabInputText || input instanceof vscode.TabInputCustom ? input.uri : undefined;
+		if (uri?.scheme === 'file' && [notesTree.location, workspaceTree.location].some(location => location && isInside(uri.fsPath, location) && uri.fsPath !== location)) {
+			recentNotes.add(uri.fsPath);
+		}
+	};
+	context.subscriptions.push(
+		vscode.window.tabGroups.onDidChangeTabs(rememberActiveNote),
+		vscode.window.tabGroups.onDidChangeTabGroups(rememberActiveNote),
+		vscode.workspace.onDidRenameFiles(e => e.files.forEach(file => recentNotes.rename(file.oldUri.fsPath, file.newUri.fsPath)))
+	);
+
 	// list notes
 	let listNotesDisposable = vscode.commands.registerCommand('Notes.listNotes', () => {
-		Notes.listNotes(trees);
+		Notes.listNotes(trees, recentNotes);
 	});
 	context.subscriptions.push(listNotesDisposable);
+
+	// forget the recently opened notes
+	let clearRecentNotesDisposable = vscode.commands.registerCommand('Notes.clearRecentlyOpened', async () => {
+		await recentNotes.clear();
+		vscode.window.showInformationMessage('Cleared the recently opened notes.');
+	});
+	context.subscriptions.push(clearRecentNotesDisposable);
 
 	// new note, in the folder of the given item, or asking where when the workspace has notes too
 	let newNoteDisposable = vscode.commands.registerCommand('Notes.newNote', (item?: Note) => {
@@ -437,7 +460,7 @@ export class Notes {
 
 	// list notes, from Workspace Notes and Notes and the folders in them; typing a name that isn't a note
 	// offers to create it, so Enter creates the note when nothing matches (#34)
-	static async listNotes(tree: Refreshable): Promise<void> {
+	static async listNotes(tree: Refreshable, recentNotes: RecentNotes): Promise<void> {
 		const sources = [{ label: 'Notes', location: Notes.getNotesLocation() }];
 		if (Notes.isWorkspaceNotesAvailable()) {
 			sources.unshift({ label: 'Workspace Notes', location: Notes.getWorkspaceNotesLocation() });
@@ -459,10 +482,19 @@ export class Notes {
 			}
 		}
 
+		// notes opened recently come first, newest first, like Quick Open; the others stay in name order
+		const recent = recentNotes.get()
+			.map(filePath => notes.find(note => note.filePath === filePath))
+			.filter((note): note is NoteItem => !!note);
+		const others = notes.filter(note => !recent.includes(note));
+		const listed: NoteItem[] = recent.length
+			? [{ label: 'recently opened', kind: vscode.QuickPickItemKind.Separator }, ...recent, { label: 'other notes', kind: vscode.QuickPickItemKind.Separator }, ...others]
+			: notes;
+
 		const quickPick = vscode.window.createQuickPick<NoteItem>();
 		quickPick.placeholder = 'Open a note, or type a name to create one';
 		quickPick.matchOnDescription = true;
-		quickPick.items = notes;
+		quickPick.items = listed;
 		quickPick.onDidChangeValue(value => {
 			const name = value.trim();
 			// offer to create the typed name in each section, unless a note already has that name
@@ -472,7 +504,8 @@ export class Notes {
 				alwaysShow: true,
 				createIn: source.location
 			}));
-			quickPick.items = [...notes, ...create];
+			// while typing, VS Code ranks the matches itself, so the headings would label the wrong notes
+			quickPick.items = name ? [...notes, ...create] : listed;
 		});
 		quickPick.onDidAccept(async () => {
 			const picked = quickPick.activeItems[0];

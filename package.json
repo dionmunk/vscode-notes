@@ -93,6 +93,11 @@
 				"category": "Notes"
 			},
 			{
+				"command": "Notes.clearRecentlyOpened",
+				"title": "Clear Recently Opened",
+				"category": "Notes"
+			},
+			{
 				"command": "Notes.newNote",
 				"title": "New Note",
 				"category": "Notes",

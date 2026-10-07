@@ -15,7 +15,7 @@ Notes are stored in a folder anywhere on your system you'd like, with as many su
 The extension can be accessed using the Notes icon that is placed in the Activity Bar, or in the Command Palette (CMD+Shift+P or CTRL+Shift+P) by typing `Notes`.
 
 * quickly create new notes by using the `Alt+N` shortcut, or by clicking the New Note icon at the top of Notes.
-* quickly access your list of notes by using the `Alt+L` shortcut to bring up a searchable list at the top of VSCode, including the notes in folders. If what you type isn't a note, press `Enter` to create it.
+* quickly access your list of notes by using the `Alt+L` shortcut to bring up a searchable list at the top of VSCode, including the notes in folders, with the notes you opened recently first. If what you type isn't a note, press `Enter` to create it.
 * search inside your notes with **Notes: Search Notes**, the search button at the top of each section, or **Search in Folder** in the right-click menu of a folder. It opens VS Code's Search view limited to your notes, wherever they are stored.
 * right-click a note or folder to rename, delete, move or search it, or to reveal it in your file explorer, and a Markdown note to open its preview. *Deleting a note is permanent, so be careful.*
 * notes open the way they do from the Explorer, with the editor VS Code uses for their file type, so images open in the image viewer.
