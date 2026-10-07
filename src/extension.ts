@@ -7,7 +7,7 @@ import { Note } from './note';
 import { NotesViewProvider } from './notesViewProvider';
 import { NotesWatcher } from './notesWatcher';
 import { MovableItem, NotesDragAndDrop } from './notesDragAndDrop';
-import { getLocationState, getMoveDestination, getPortableFolder, isInside, resolveNotesLocation, toWorkspaceSetting } from './location';
+import { getLocationState, getMoveDestination, getPortableFolder, isInside, resolveNotesLocation, splitNoteName, toWorkspaceSetting } from './location';
 
 let extId = 'vscode-notes';
 let extPub = 'dionmunk';
@@ -350,6 +350,24 @@ export class Notes {
 		const target = kind ?? await Notes.pickKind();
 		return target ? Notes.requireLocation(target) : undefined;
 	}
+	// the file extensions VS Code has a language for, with the language, from every installed extension
+	// including the built-in ones
+	static getLanguageExtensions(): Map<string, string> {
+		// plain text is registered by VS Code itself rather than by an extension
+		const languages = new Map<string, string>([['txt', 'plaintext']]);
+		for (const extension of vscode.extensions.all) {
+			for (const language of extension.packageJSON?.contributes?.languages ?? []) {
+				for (const fileExtension of language.extensions ?? []) {
+					const key = String(fileExtension).replace(/^\./, '').toLowerCase();
+					if (!languages.has(key)) {
+						languages.set(key, language.id);
+					}
+				}
+			}
+		}
+		return languages;
+	}
+
 	// get notes default extension
 	static getNotesDefaultNoteExtension() {
 		return vscode.workspace.getConfiguration('notes').get('notesDefaultNoteExtension');
@@ -471,12 +489,15 @@ export class Notes {
 				return; // User cancelled
 			}
 
-			// set note name
-			let fileName: string = `${noteName}`;
+			// keep an extension typed with the name, like query.sql, otherwise use the default one
+			const languages = Notes.getLanguageExtensions();
+			const { base, extension } = splitNoteName(noteName, String(Notes.getNotesExtensions()), new Set(languages.keys()));
+			const noteExtension = extension ?? notesDefaultNoteExtension;
 			// set note path
-			let filePath: string = path.join(notesLocation, `${fileName.replace(/\:/gi, '')}.${notesDefaultNoteExtension}`);
-			// set note first line
-			let firstLine: string = "# " + fileName + "\n\n";
+			let filePath: string = path.join(notesLocation, `${base.replace(/\:/gi, '')}.${noteExtension}`);
+			// a Markdown note starts with its name as a heading, other files start empty
+			const markdown = languages.get(noteExtension.toLowerCase()) === 'markdown' || ['md', 'markdown'].includes(noteExtension.toLowerCase());
+			let firstLine: string = markdown ? `# ${base}\n\n` : '';
 			// does note exist already?
 			let noteExists = fs.existsSync(String(filePath));
 
@@ -621,8 +642,8 @@ export class Notes {
 			return;
 		}
 
-		// get the note's extension
-		let noteExtension = note.name.split('.').pop();
+		// get the note's extension, '' for a note without one
+		let noteExtension = path.extname(note.name).slice(1);
 
 		// prompt user for new note name
 		vscode.window.showInputBox({
@@ -635,25 +656,10 @@ export class Notes {
 				return;
 			}
 
-			// Get the extension without the dot
-			let newNoteExtension = path.extname(newNoteName).replace('.', '');
-			let noteName: string = '';
-
-			// if new note name extension is in list of allowed extensions
-			if (String(Notes.getNotesExtensions()).split(',').includes(newNoteExtension)) {
-				// use the new note name
-				noteName = newNoteName;
-			}
-			// else if new note name has no extension
-			else if (path.extname(newNoteName) === '') {
-				// use the note's current extension
-				noteName = newNoteName + '.' + noteExtension;
-			}
-			// else if new note name has an extension that's not in the allowed list
-			else {
-				// use the new note name but with the current extension
-				noteName = path.basename(newNoteName, path.extname(newNoteName)) + '.' + noteExtension;
-			}
+			// use the new name as typed when it ends with an extension a note can have, like a.txt,
+			// otherwise keep the current extension, so a name like 'Meeting 2026.10.07' stays whole
+			const { extension } = splitNoteName(newNoteName, String(Notes.getNotesExtensions()), new Set(Notes.getLanguageExtensions().keys()));
+			let noteName: string = extension || !noteExtension ? newNoteName : `${newNoteName}.${noteExtension}`;
 
 			// check for existing note with the same name
 			let newNotePath = path.join(note.location, noteName);

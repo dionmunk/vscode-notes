@@ -84,3 +84,17 @@ export function getMoveDestination(source: string, targetFolder: string): string
 	}
 	return path.join(targetFolder, path.basename(source));
 }
+
+// split a typed note name into its name and the extension it ends with, when that extension is one a note can have:
+// in the list of allowed extensions, or with '*' one VS Code has a language for, so `query.sql` keeps `.sql`
+// while the `.07` of `Meeting 2026.10.07` stays part of the name
+export function splitNoteName(name: string, allowedExtensions: string, languageExtensions: ReadonlySet<string>): { base: string, extension?: string } {
+	const dotted = path.extname(name);
+	const extension = dotted.slice(1);
+	if (!extension) {
+		return { base: name };
+	}
+	const allowed = allowedExtensions.split(',').map(allowedExtension => allowedExtension.trim().toLowerCase());
+	const usable = allowed.includes('*') ? languageExtensions.has(extension.toLowerCase()) : allowed.includes(extension.toLowerCase());
+	return usable ? { base: name.slice(0, -dotted.length), extension } : { base: name };
+}
