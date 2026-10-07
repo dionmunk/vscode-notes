@@ -24,7 +24,7 @@ The extension can be accessed using the Notes icon that is placed in the Activit
 
 ## Getting Started
 
-Notes will prompt you for a storage location the first time you access the extension from the Activity Bar or through the Command Palette. If you would like to change the storage location, later on, you can access the Notes extension settings by clicking on the gear icon in Notes or from the Command Palette. After you've selected a storage location, you can access your notes from the Notes icon in the Activity Bar, or through the Command Palette.
+Notes will prompt you for a storage location the first time you access the extension from the Activity Bar or through the Command Palette. If you would like to change the storage location, later on, you can access the Notes extension settings from **Settings** in the `...` menu at the top of Notes, or from the Command Palette. After you've selected a storage location, you can access your notes from the Notes icon in the Activity Bar, or through the Command Palette.
 
 ## Workspace Notes
 

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+* Refresh and Settings moved from the title bar of Notes and Workspace Notes to its `...` menu
 * notes open like they do from the Explorer, with the editor VS Code associates with their file type: images open in the image viewer, and Markdown opens in the preview or another Markdown editor when `workbench.editorAssociations` says so (#53, #70); a new note still opens as text
 
 ### Fixed

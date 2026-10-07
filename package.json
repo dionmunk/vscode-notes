@@ -290,7 +290,7 @@
 				{
 					"command": "Notes.refreshNotes",
 					"when": "view == workspaceNotes",
-					"group": "navigation@5"
+					"group": "3_view@1"
 				},
 				{
 					"command": "Notes.revealWorkspaceNotesInOS",
@@ -325,12 +325,12 @@
 				{
 					"command": "Notes.refreshNotes",
 					"when": "view == notes",
-					"group": "navigation@5"
+					"group": "3_view@1"
 				},
 				{
 					"command": "Notes.setupNotes",
 					"when": "view == notes",
-					"group": "navigation@6"
+					"group": "4_settings@1"
 				},
 				{
 					"command": "Notes.revealInOS",
